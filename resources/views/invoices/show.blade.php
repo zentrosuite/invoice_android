@@ -203,10 +203,6 @@
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <div class="me-auto">
                     <h6 class="mb-0">Send to {{ $invoice->customer_name ?: ($invoice->customer_business ?: 'customer') }}</h6>
-                    <div class="text-success fs-12" x-show="phone" x-cloak>
-                        <i class="ri-file-pdf-2-line"></i> Sends the PDF — choose WhatsApp, then
-                        <strong>{{ $invoice->customer_name ?: ($invoice->customer_business ?: 'the customer') }}</strong>@if ($invoice->customer_phone) ({{ $invoice->customer_phone }})@endif.
-                    </div>
                     <div class="text-muted fs-12">
                         @if ($invoice->viewed_at)
                             <i class="ri-eye-line"></i> Opened by the customer {{ $invoice->viewed_at->diffForHumans() }}
@@ -220,15 +216,17 @@
                     </div>
                 </div>
 
-                {{-- Phone: the share sheet with ONLY the PDF — WhatsApp, then the contact. No web
-                     page can address a file to a WhatsApp number directly, so that is as direct as
-                     it gets. Desktop: the customer's chat with the saved message and link. --}}
-                <a href="{{ $whatsappUrl }}" target="_blank" rel="noopener" class="btn btn-success"
-                   :class="{ disabled: phone && !file }" :aria-disabled="phone && !file" @click="send($event)">
-                    <span x-show="phone && !file && !failed" x-cloak class="spinner-border spinner-border-sm me-1"></span>
-                    <i class="ri-whatsapp-line me-1" x-show="!(phone && !file && !failed)"></i>
-                    <span x-text="phone && !file && !failed ? 'Preparing PDF…' : 'Send on WhatsApp'">Send on WhatsApp</span>
+                {{-- Always the customer's own chat, phone and desktop alike, with the saved message
+                     and the invoice link. A web page cannot attach a file to a wa.me chat, so the
+                     PDF itself goes by the separate Share PDF button on phones. --}}
+                <a href="{{ $whatsappUrl }}" target="_blank" rel="noopener" class="btn btn-success" @click="reported()">
+                    <i class="ri-whatsapp-line me-1"></i>Send on WhatsApp
                 </a>
+                <button type="button" class="btn btn-soft-success" x-show="phone" x-cloak @click="sharePdf()"
+                        :disabled="!file && !failed">
+                    <span x-show="!file && !failed" class="spinner-border spinner-border-sm me-1"></span>
+                    <i class="ri-file-pdf-2-line me-1" x-show="file || failed"></i>Share PDF
+                </button>
                 <button type="button" class="btn btn-light" @click="copy()">
                     <i :class="copied ? 'ri-check-line' : 'ri-link'" class="me-1"></i><span x-text="copied ? 'Copied' : 'Copy link'"></span>
                 </button>
@@ -308,24 +306,20 @@
                     fetch(cfg.pdfUrl, { credentials: 'same-origin' })
                         .then((r) => { if (!r.ok) { throw new Error(); } return r.blob(); })
                         .then((blob) => { this.file = new File([blob], cfg.filename, { type: 'application/pdf' }); })
-                        .catch(() => { this.failed = true; this.error = 'Could not prepare the PDF. Tap again to send the message and link instead.'; });
+                        .catch(() => { this.failed = true; this.error = 'Could not prepare the PDF. Tap Share PDF to try again.'; });
                 },
-                send(event) {
-                    // Desktop, or the PDF could not be prepared: the wa.me link opens as usual.
-                    if (!this.phone || this.failed) { this.reported(); return; }
-
-                    event.preventDefault();
-                    if (!this.file) { return; } // still preparing — the button says so
-
+                /**
+                 * Share PDF (phones): the system share sheet with just the file. Prepared before
+                 * the tap, because the sheet only opens straight from one.
+                 */
+                sharePdf() {
+                    if (!this.file) { if (this.failed) { this.loadPdf(); } return; }
                     this.error = '';
                     navigator.share({ files: [this.file] })
                         .then(() => this.reported())
                         .catch((e) => {
                             // AbortError is closing the sheet without sending — not a failure.
-                            if (e && e.name !== 'AbortError') {
-                                this.failed = true;
-                                this.error = 'Sharing did not open. Tap again to send the message and link instead.';
-                            }
+                            if (e && e.name !== 'AbortError') { this.error = 'Sharing did not open. Use Send on WhatsApp or Download PDF instead.'; }
                         });
                 },
                 reported() {
