@@ -18,7 +18,7 @@ as-is to shared hosting such as InfinityFree.
 | 4 | Invoice builder: itemised or package pricing, drafts, statuses, editing | done |
 | 5 | Invoice designs (Package, Modern, Classic, Receipt, Minimal), PDF download, UPI QR on unpaid invoices | done |
 | 6 | WhatsApp sharing and public invoice link | done |
-| 7 | Dashboard, payments, mobile polish, InfinityFree deploy package | |
+| 7 | Dashboard, payments, mobile polish, InfinityFree deploy package | done |
 
 ## Usage profiles
 
@@ -35,6 +35,22 @@ from — any invoice can still hold whatever lines you type.
 The **Package** design follows the 5 Star Sales and Service invoice: a list of services, each
 Included or Not included with optional sub-points, and a single total — the way a freelancer
 quotes a project.
+
+## Deploying to InfinityFree
+
+```bash
+tools/build-infinityfree.sh     # → dist/zentro-invoices-infinityfree-<date>.zip
+```
+
+Built from the committed `HEAD` (commit first): production-only dependencies for PHP 8.3, the
+web root swapped into `htdocs/` with the application locked away in `htdocs/_app/`, a
+production `.env` template (the installer creates `.env` and its key on first visit), and
+placeholder files so upload tools keep the empty storage folders. The step-by-step guide,
+`docs/DEPLOY-INFINITYFREE.md`, ships in the zip as `READ-ME-FIRST.md`.
+
+New versions that change the database: upload the new package (keeping `_app/.env`,
+`_app/storage/` and `uploads/`), sign in, and press **Apply update** in the banner — there is
+no shell on the host to run migrations.
 
 ## Local development
 
