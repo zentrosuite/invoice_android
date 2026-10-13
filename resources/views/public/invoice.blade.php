@@ -186,7 +186,7 @@
             if (!doc) { fit(); return; }
             var sheet = doc.querySelector('.sheet');
             width = Math.ceil((sheet ? sheet.getBoundingClientRect().width : 794) + 48);
-            height = Math.ceil(doc.documentElement.scrollHeight);
+            height = Math.ceil(doc.body.getBoundingClientRect().height);
             fit();
         }
 

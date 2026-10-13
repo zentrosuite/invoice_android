@@ -7,7 +7,9 @@
     distinguishes normal and bold within one family.
 --}}
 <!DOCTYPE html>
-<html lang="en">
+{{-- The class is on <html> as well as <body>: in the preview frame, any space below the body
+     must be the grey desk, never white that reads as an empty second page. --}}
+<html lang="en" class="{{ $forPdf ? 'pdf' : 'screen' }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -44,7 +46,8 @@
         .center { text-align: center; }
 
         /* On screen: a sheet of paper on a grey desk. In the PDF the page is the paper. */
-        .screen { background: #d9dbe3; padding: 24px 0; }
+        html.screen, .screen { background: #d9dbe3; }
+        body.screen { padding: 24px 0; }
         .screen .sheet { margin: 0 auto; background: #fff; box-shadow: 0 10px 40px -12px rgba(17, 22, 51, .35); }
 
         /* Status stamps. */

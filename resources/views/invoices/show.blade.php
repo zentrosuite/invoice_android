@@ -348,10 +348,10 @@
                     if (!doc) { return; }
                     const sheet = doc.querySelector('.sheet');
                     this.width = Math.ceil((sheet ? sheet.getBoundingClientRect().width : 794) + 48);
-                    this.height = Math.ceil(doc.documentElement.scrollHeight);
+                    this.height = Math.ceil(doc.body.getBoundingClientRect().height);
                     this.fit();
                     // Fonts can land after load and change the height.
-                    doc.fonts && doc.fonts.ready.then(() => { this.height = Math.ceil(doc.documentElement.scrollHeight); });
+                    doc.fonts && doc.fonts.ready.then(() => { this.height = Math.ceil(doc.body.getBoundingClientRect().height); });
                 },
                 fit() {
                     // $root, not $el: called from the frame's @load, $el would be the iframe itself.
