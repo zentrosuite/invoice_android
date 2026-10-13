@@ -36,6 +36,9 @@ git -C "$ROOT" archive HEAD | tar -x -C "$APP"
 
 echo "→ Installing production dependencies (PHP 8.3 platform)"
 composer install --working-dir="$APP" --no-dev --optimize-autoloader --no-interaction --no-progress --quiet
+# Composer's package:discover boots the app, and the installer's bootstrap then creates a .env
+# with a fresh APP_KEY. Each site must make its own on first visit, so it goes.
+rm -f "$APP/.env"
 
 echo "→ Swapping public/ into htdocs/"
 # Everything public/ holds becomes the web root, dotfiles included.
