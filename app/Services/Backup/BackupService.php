@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Backup;
 
+use App\Services\CompanyImageStore;
 use App\Support\DeviceFiles;
 use App\Support\Uploads;
 use Illuminate\Support\Facades\Artisan;
@@ -18,7 +19,7 @@ use RuntimeException;
  * JSON with a .zentrobackup extension — no zip extension needed, which the phone's PHP lacks.
  *
  *   { "format": "zentro-invoice-backup", "version": 1, "created_at": …, "app_version": …,
- *     "database": "<base64 of the SQLite file>", "files": { "uploads/company/logo-….png": "<base64>" } }
+ *     "database": "<base64 of the SQLite file>", "files": { "uploads/company/logo-….jpg": "<base64>" } }
  */
 final class BackupService
 {
@@ -43,7 +44,10 @@ final class BackupService
         DB::statement('VACUUM INTO ?', [$snapshot]);
 
         $files = [];
-        foreach (glob(Uploads::path('uploads/company') . '/*.png') ?: [] as $file) {
+        foreach (glob(Uploads::path('uploads/company') . '/*') ?: [] as $file) {
+            if (preg_match(CompanyImageStore::FILE_PATTERN, basename($file)) !== 1) {
+                continue;
+            }
             $files['uploads/company/' . basename($file)] = base64_encode((string) file_get_contents($file));
         }
 
@@ -107,13 +111,15 @@ final class BackupService
         if (! is_dir($dir)) {
             mkdir($dir, 0o775, true);
         }
-        foreach (glob($dir . '/*.png') ?: [] as $old) {
-            @unlink($old);
+        foreach (glob($dir . '/*') ?: [] as $old) {
+            if (preg_match(CompanyImageStore::FILE_PATTERN, basename($old)) === 1) {
+                @unlink($old);
+            }
         }
         foreach ((array) ($data['files'] ?? []) as $relative => $content) {
             // Only plain file names inside uploads/company — never a path from the file itself.
             $name = basename((string) $relative);
-            if (preg_match('/^(logo|signature)-\d+\.png$/', $name) === 1) {
+            if (preg_match(CompanyImageStore::FILE_PATTERN, $name) === 1) {
                 file_put_contents($dir . '/' . $name, base64_decode((string) $content, true) ?: '');
             }
         }

@@ -399,3 +399,34 @@ tr[data-href] { cursor: pointer; }
 }
 
 [x-cloak] { display: none !important; }
+
+/* ---- Android system bars ------------------------------------------------------------------
+   Android 15 draws the app edge to edge, under the status bar (clock, battery) and the gesture
+   bar. NativePHP passes their heights in as --inset-top / --inset-bottom; in a plain browser
+   they are unset and every rule below falls back to 0. */
+#page-topbar { padding-top: var(--inset-top, 0px); }
+.page-content { padding-top: calc(70px + 1.5rem + var(--inset-top, 0px)); padding-bottom: calc(60px + var(--inset-bottom, 0px)); }
+.navbar-menu { padding-top: var(--inset-top, 0px); }
+@media (max-width: 767.98px) {
+    :is([data-layout=vertical], [data-layout=semibox]) .app-menu {
+        padding-top: calc(10px + var(--inset-top, 0px));
+        padding-bottom: calc(20px + var(--inset-bottom, 0px));
+    }
+    .zi-form-actions { padding-bottom: calc(.75rem + var(--inset-bottom, 0px)); }
+}
+.zi-sticky { top: calc(70px + 1.5rem + var(--inset-top, 0px)); }
+.footer { height: calc(60px + var(--inset-bottom, 0px)); padding-bottom: calc(20px + var(--inset-bottom, 0px)); }
+.zi-modal { padding: calc(1rem + var(--inset-top, 0px)) 1rem calc(1rem + var(--inset-bottom, 0px)); }
+.zi-modal-card { max-height: calc(100vh - 2rem - var(--inset-top, 0px) - var(--inset-bottom, 0px)); }
+.auth-page-wrapper { padding-top: calc(3rem + var(--inset-top, 0px)) !important; }
+.auth-page-wrapper .footer { padding-bottom: var(--inset-bottom, 0px); }
+/* The sign-in pages have no fixed top bar, so scrolled content would pass under the clock.
+   A strip in the header's own colour sits behind the status bar instead. */
+.auth-page-wrapper::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--inset-top, 0px);
+    background: #161c45;
+    z-index: 1003;
+}

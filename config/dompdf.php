@@ -66,7 +66,9 @@ return [
          * The temporary directory is required to download remote images and when
          * using the PDFLib back end.
          */
-        'temp_dir' => sys_get_temp_dir(),
+        // Not the system temp folder: on the phone that is /tmp, which Android does not have.
+        // InvoiceDocument creates this folder (and font_dir) before rendering.
+        'temp_dir' => storage_path('app/dompdf'),
 
         /**
          * ==== IMPORTANT ====

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Settings;
 
+use App\Services\CompanyImageStore;
 use App\Settings\CompanySettings;
+use App\Support\Uploads;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -141,6 +143,74 @@ final class CompanyProfileTest extends TestCase
         $this->assertFileExists(\App\Support\Uploads::path($path));
         // Shown in the app through the media route, not a public file.
         $this->assertStringContainsString('/media/logo-', (string) app(CompanySettings::class)->logoUrl());
+    }
+
+    public function test_a_jpeg_from_the_phone_picker_is_accepted(): void
+    {
+        $this->actingAs($this->owner())
+            ->put(route('company.update'), $this->valid(['signature_data' => $this->jpegDataUrl(600, 200)]))
+            ->assertSessionHasNoErrors();
+
+        $this->assertFileExists(Uploads::path((string) app(CompanySettings::class)->signaturePath));
+    }
+
+    /** The phone's PHP has no GD: the page's JPEG is kept as it came, as a .jpg. */
+    public function test_without_gd_a_print_size_jpeg_is_stored_as_it_came(): void
+    {
+        $file = $this->jpegUpload(800, 300);
+        $bytes = (string) file_get_contents($file->getRealPath());
+
+        $path = (new CompanyImageStore(gd: false))->store($file, null, 'logo', 800, 300);
+
+        $this->assertMatchesRegularExpression('#^uploads/company/logo-\d+\.jpg$#', $path);
+        $this->assertSame($bytes, file_get_contents(Uploads::path($path)));
+
+        // Served to the page with its own type.
+        $this->actingAs($this->owner())->get(route('media', basename($path)))
+            ->assertOk()->assertHeader('Content-Type', 'image/jpeg');
+    }
+
+    public function test_without_gd_a_png_or_an_oversized_picture_is_refused(): void
+    {
+        $store = new CompanyImageStore(gd: false);
+
+        ob_start();
+        imagepng(imagecreatetruecolor(100, 100));
+        $png = UploadedFile::fake()->createWithContent('logo.png', (string) ob_get_clean());
+
+        foreach ([$png, $this->jpegUpload(1600, 600)] as $file) {
+            try {
+                $store->store($file, null, 'logo', 800, 300);
+                $this->fail('A picture the phone cannot keep as it came was stored.');
+            } catch (\RuntimeException) {
+                // Refused, as it should be.
+            }
+        }
+
+        $this->assertSame([], glob(Uploads::path('uploads/company') . '/*') ?: [], 'Nothing was written.');
+    }
+
+    private function jpegUpload(int $width, int $height): UploadedFile
+    {
+        ob_start();
+        imagejpeg(imagecreatetruecolor($width, $height));
+
+        return UploadedFile::fake()->createWithContent('picked.jpg', (string) ob_get_clean());
+    }
+
+    private function jpegDataUrl(int $width, int $height): string
+    {
+        ob_start();
+        imagejpeg(imagecreatetruecolor($width, $height));
+
+        return 'data:image/jpeg;base64,' . base64_encode((string) ob_get_clean());
+    }
+
+    public function test_data_that_is_not_a_picture_data_url_is_refused(): void
+    {
+        $this->actingAs($this->owner())
+            ->put(route('company.update'), $this->valid(['logo_data' => 'data:text/html;base64,' . base64_encode('<b>x</b>')]))
+            ->assertSessionHasErrors('logo_data');
     }
 
     public function test_data_that_is_not_a_png_is_refused(): void

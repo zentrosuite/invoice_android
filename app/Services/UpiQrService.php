@@ -5,20 +5,22 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Settings\CompanySettings;
+use BaconQrCode\Common\ErrorCorrectionLevel;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
-use Endroid\QrCode\Encoding\Encoding;
-use Endroid\QrCode\ErrorCorrectionLevel;
-use Endroid\QrCode\QrCode;
-use Endroid\QrCode\RoundBlockSizeMode;
-use Endroid\QrCode\Writer\PngWriter;
-use Endroid\QrCode\Writer\SvgWriter;
 
 /**
  * The UPI payment QR printed on an unpaid invoice. Ported from the inventory app.
  *
  * Any UPI app (GPay, PhonePe, Paytm, BHIM) reads the upi://pay URI, opens with the payee and the
  * amount already filled in, and the customer only has to confirm.
+ *
+ * Drawn with bacon/bacon-qr-code directly, not endroid/qr-code: NativePHP leaves vendor/endroid
+ * out of the app bundle, so on the phone endroid's classes do not exist.
  */
 final readonly class UpiQrService
 {
@@ -74,30 +76,19 @@ final readonly class UpiQrService
         return 'upi://pay?' . http_build_query($parameters, '', '&', PHP_QUERY_RFC3986);
     }
 
+    /**
+     * SVG data URI, for the page and the PDF alike: a vector drawing dompdf renders without GD
+     * (the phone's PHP has none, and a PNG would need it).
+     */
     public function render(string $payload, int $size = 220): string
     {
-        return (new SvgWriter)->write($this->code($payload, $size))->getDataUri();
-    }
+        $writer = new Writer(new ImageRenderer(new RendererStyle($size, 2), new SvgImageBackEnd));
 
-    /**
-     * PNG data URI, for the PDF: dompdf draws a raster image far more reliably than an SVG made of
-     * hundreds of rectangles. Rendered large and scaled down, so it stays crisp when printed.
-     */
-    public function renderPng(string $payload, int $size = 480): string
-    {
-        return (new PngWriter)->write($this->code($payload, $size))->getDataUri();
-    }
+        // The payload is plain ASCII (RFC 3986-encoded), so the default ISO-8859-1 mode: no ECI
+        // header, which some older scanners trip over.
+        $svg = $writer->writeString($payload, 'ISO-8859-1', ErrorCorrectionLevel::M());
 
-    private function code(string $payload, int $size): QrCode
-    {
-        return new QrCode(
-            data: $payload,
-            encoding: new Encoding('UTF-8'),
-            errorCorrectionLevel: ErrorCorrectionLevel::Medium,
-            size: $size,
-            margin: 8,
-            roundBlockSizeMode: RoundBlockSizeMode::Margin,
-        );
+        return 'data:image/svg+xml;base64,' . base64_encode($svg);
     }
 
     /**

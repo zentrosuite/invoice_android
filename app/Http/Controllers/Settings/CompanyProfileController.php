@@ -9,6 +9,7 @@ use App\Http\Requests\Settings\CompanyProfileRequest;
 use App\Services\CompanyImageStore;
 use App\Services\UpiQrService;
 use App\Settings\CompanySettings;
+use App\Support\DeviceFiles;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
@@ -76,19 +77,27 @@ final class CompanyProfileController extends Controller
             return $images->store($request->file($field), $current, $field, $maxWidth, $maxHeight);
         }
 
-        // The phone sends the picked picture as a PNG data URL rather than a file upload.
+        // The phone sends the picked picture as a data URL (a JPEG, already at print size)
+        // rather than a file upload.
         if ($request->filled($field . '_data')) {
-            $bytes = base64_decode(substr((string) $request->input($field . '_data'), strlen('data:image/png;base64,')), true);
+            $data = (string) $request->input($field . '_data');
+            $extension = match (true) {
+                str_starts_with($data, 'data:image/jpeg;base64,') => 'jpg',
+                str_starts_with($data, 'data:image/png;base64,') => 'png',
+                default => null,
+            };
+            $bytes = $extension === null ? false : base64_decode(substr($data, strpos($data, ',') + 1), true);
 
-            if ($bytes === false || ! str_starts_with($bytes, "\x89PNG")) {
+            if ($bytes === false || @getimagesizefromstring($bytes) === false) {
                 throw new RuntimeException('That picture could not be read.');
             }
 
-            $tmp = tempnam(sys_get_temp_dir(), 'zi');
+            // Not the system temp folder: on the phone that is /tmp, which Android does not have.
+            $tmp = DeviceFiles::path('upload', $field . '-' . bin2hex(random_bytes(6)) . '.' . $extension);
             file_put_contents($tmp, $bytes);
 
             try {
-                return $images->store(new UploadedFile($tmp, $field . '.png', 'image/png', null, true), $current, $field, $maxWidth, $maxHeight);
+                return $images->store(new UploadedFile($tmp, $field . '.' . $extension, null, null, true), $current, $field, $maxWidth, $maxHeight);
             } finally {
                 @unlink($tmp);
             }

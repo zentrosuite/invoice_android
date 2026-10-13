@@ -42,6 +42,7 @@ final readonly class InvoiceDocument
 
     public function pdf(Invoice $invoice): DomPdf
     {
+        $this->ensurePdfFolders();
         $html = $this->html($invoice, true);
 
         if ($this->template($invoice) !== InvoiceTemplate::Receipt) {
@@ -122,7 +123,7 @@ final readonly class InvoiceDocument
             'isPartial' => $invoice->status === InvoiceStatus::Partial,
             'balance' => $balance,
             'payable' => $payable,
-            'qr' => $upiPayload === null ? null : $this->upi->renderPng($upiPayload),
+            'qr' => $upiPayload === null ? null : $this->upi->render($upiPayload, 480),
             'upiLink' => $upiPayload,
             'rateHeading' => strcasecmp($invoice->rate_label, 'Amount') === 0 ? 'Rate' : $invoice->rate_label,
         ];
@@ -142,6 +143,19 @@ final readonly class InvoiceDocument
             InvoiceTemplate::Package, InvoiceTemplate::Modern => 'package',
             default => $this->template($invoice)->value,
         };
+    }
+
+    /**
+     * dompdf writes the invoice fonts and its temporary files under storage/. On the phone that
+     * folder starts with only app/, framework/ and logs/, so the two dompdf needs are made here.
+     */
+    private function ensurePdfFolders(): void
+    {
+        foreach ([config('dompdf.options.font_dir'), config('dompdf.options.font_cache'), config('dompdf.options.temp_dir')] as $dir) {
+            if (is_string($dir) && $dir !== '' && ! is_dir($dir)) {
+                @mkdir($dir, 0o775, true);
+            }
+        }
     }
 
     private function dataUri(?string $file): ?string

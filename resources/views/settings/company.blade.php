@@ -59,7 +59,7 @@
                                                 @click="choose('logo', $refs.logoData)" :disabled="picking">
                                             <i class="ri-image-add-line me-1"></i><span x-text="picking === 'logo' ? 'Opening…' : 'Choose picture'"></span>
                                         </button>
-                                        <div class="form-text">A transparent PNG looks best.</div>
+                                        <div class="form-text">Any photo or picture. It is placed on white, so one with a white or clear background looks best.</div>
                                         @error('logo')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                         <div class="text-danger fs-13 mt-1" x-show="pickError" x-text="pickError" x-cloak></div>
                                     </div>
@@ -86,7 +86,7 @@
                                         </button>
                                         <div class="form-text">
                                             Printed above "Authorised signatory". Without one, invoices leave the signatory
-                                            block out. Sign on white paper and photograph it, or use a transparent PNG.
+                                            block out. Sign on white paper and photograph it.
                                         </div>
                                         @error('signature')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                     </div>
@@ -261,13 +261,15 @@
                 },
                 picking: null,
                 pickError: '',
-                /** Phone picker → PNG data URL → hidden field, previewed straight away. */
+                /** Phone picker → JPEG data URL at print size → hidden field, previewed straight away. */
                 choose(field, input) {
+                    // The sizes the server keeps: wide and short for a logo, smaller for a signature.
+                    const [w, h] = field === 'signature' ? [600, 200] : [800, 300];
                     this.picking = field;
                     this.pickError = '';
                     ZentroNative.pickFile(['image/*'])
-                        .then((file) => file ? ZentroNative.imageAsPng(file.path) : null)
-                        .then((png) => { if (png) { input.value = png; this.f[field] = png; } })
+                        .then((file) => file ? ZentroNative.imageAsJpeg(file.path, w, h) : null)
+                        .then((jpeg) => { if (jpeg) { input.value = jpeg; this.f[field] = jpeg; } })
                         .catch((e) => { this.pickError = e.message; })
                         .finally(() => { this.picking = null; });
                 },

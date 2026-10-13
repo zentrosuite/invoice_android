@@ -7,9 +7,9 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "bacon/bacon-qr-code": "^3.0",
         "barryvdh/laravel-dompdf": "^3.1",
         "brick/math": "^0.14.8",
-        "endroid/qr-code": "^6.0",
         "laravel/framework": "^12.0",
         "nativephp/mobile": "^4.6",
         "nativephp/mobile-share": "^1.1",

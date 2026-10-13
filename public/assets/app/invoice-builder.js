@@ -240,7 +240,9 @@ document.addEventListener('alpine:init', function () {
                         'X-Requested-With': 'XMLHttpRequest',
                     },
                     credentials: 'same-origin',
-                    body: JSON.stringify(this.quick.form),
+                    // The token goes in the body too: inside the Android app the header can be
+                    // replaced by a stale one (see native.js), and Laravel reads the body first.
+                    body: JSON.stringify(Object.assign({ _token: token }, this.quick.form)),
                 })
                     .then(function (r) {
                         return r.json().then(function (body) { return { status: r.status, body: body }; });

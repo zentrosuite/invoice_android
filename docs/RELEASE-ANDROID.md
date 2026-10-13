@@ -145,6 +145,20 @@ Smoke test, at phone size:
 
 ---
 
+### Reading the phone's error log (debug build)
+
+A release build cannot be inspected. To see why a page fails on the phone, install a debug
+build on the emulator or a USB phone (uninstall the release first: different key):
+
+```bash
+export PATH=~/Android/Sdk/platform-tools:$PATH   # native:run needs adb on the PATH
+php artisan native:run android --build=debug --no-tty --no-interaction
+adb shell run-as com.zentrosuite.invoice \
+  cat app_storage/persisted_data/storage/logs/laravel.log
+```
+
+---
+
 ## 5. Publish on GitHub
 
 1. Commit the version bump notes (the code is already committed) and push to
@@ -174,6 +188,9 @@ Smoke test, at phone size:
 | Update installed but shows old screens | Version name + code unchanged. Raise the code and rebuild. |
 | `[JAVA_COMPILER]` capability error | `JAVA_HOME` points at a runtime-only Java. Use the full JDK above. |
 | `TTY mode requires /dev/tty` | Run in a real terminal, or use the Gradle command in section 3. |
+| A page works in the browser but gives **500** on the phone | The phone's PHP differs from the desktop's: **no GD** (no image functions; dompdf cannot embed PNGs), no `/tmp`, no zip, and NativePHP leaves some packages out of the bundle (`vendor/endroid`; see `BundleExclusions.php`). `tests/Unit/PhoneRuntimeTest.php` guards the known ones. Read the real error from a debug build (below). |
+| "CSRF token mismatch" on buttons that work in the browser | NativePHP overwrites the `X-CSRF-TOKEN` header with a remembered token. Every `fetch` POST must also send `_token` in its body (`ZentroNative.post` does). |
+| Screens run under the clock / gesture bar | Android 15 draws edge to edge. Fixed bars must add `var(--inset-top)` / `var(--inset-bottom)` (see the end of `app.css`). |
 | Keystore lost | Existing installs can no longer be updated. Owners must Backup, uninstall, install the new build and Restore. Prevent it: keep copies of `~/.zentro-android/`. |
 
 ---
@@ -182,4 +199,5 @@ Smoke test, at phone size:
 
 | Version | Code | Date | Notes |
 |---|---|---|---|
-| 1.0.0 | 1 | 2026-10-13 | First release: PIN lock, invoices and PDF on the phone, Send on WhatsApp with the PDF attached, Share/Save PDF, CSV export, Backup/Restore (also from the welcome screen). |
+| 1.0.0 | 1 | 2026-10-13 | First build. **Withdrawn** the same day: CSRF errors on WhatsApp/Share/Save and quick-add customer, 500 on logo upload (no GD), pages under the system bars. |
+| 1.0.0 | 2 | 2026-10-13 | Same features, those fixed, plus two more found on the device: no PDF could be made (dompdf's temp folder was /tmp) and any UPI QR crashed (endroid is not in the bundle). Logos now JPEG, UPI QR now SVG via Bacon. Every feature run on the emulator before release. Installs over code 1. |

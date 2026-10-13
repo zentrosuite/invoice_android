@@ -9,6 +9,11 @@
  |   const name = await ZentroNative.saveFile(path, 'x.pdf', mime);   // saved name or null
  |   await ZentroNative.shareFile(path, 'caption');
  |   await ZentroNative.whatsappFile(path, '919688527308', 'caption');
+ |
+ | Every POST carries the CSRF token in the body as `_token`, not only in the header. NativePHP's
+ | Android layer overwrites X-CSRF-TOKEN with a token it remembered from an earlier page, which
+ | goes stale whenever the session's token changes (the PIN lock signs out and in). Laravel reads
+ | `_token` from the body before the header, so the body copy is what counts.
  */
 (function () {
     'use strict';
@@ -27,7 +32,7 @@
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf() },
-            body: JSON.stringify({ method: method, params: params || {} }),
+            body: JSON.stringify({ method: method, params: params || {}, _token: csrf() }),
         })
             .then(function (r) { return r.json(); })
             .then(function (result) {
@@ -63,7 +68,7 @@
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf() },
-            body: JSON.stringify(data || {}),
+            body: JSON.stringify(Object.assign({ _token: csrf() }, data || {})),
         }).then(function (r) {
             return r.json().catch(function () { return {}; }).then(function (body) {
                 if (!r.ok || body.error) { throw new Error(body.error || body.message || 'Something went wrong.'); }
@@ -105,21 +110,28 @@
         },
 
         /**
-         * A picked image as a PNG data URL, drawn through a canvas — any format the phone's
-         * browser can show (JPEG, HEIC on most phones, WebP) becomes a PNG the server can read.
-         * Large photos are scaled down first, so a 12-megapixel camera shot does not travel whole.
+         * A picked image as a JPEG data URL, drawn through a canvas onto white and scaled to fit
+         * maxWidth × maxHeight. Any format the phone's browser can show (JPEG, PNG, HEIC on most
+         * phones, WebP) comes out as a JPEG of the size it will be printed at.
+         *
+         * JPEG because the phone's PHP has no GD: the server cannot resize or convert a picture,
+         * and the PDF renderer can only embed a JPEG without GD (a PNG needs it).
          */
-        imageAsPng: function (path, maxSide) {
-            maxSide = maxSide || 1200;
+        imageAsJpeg: function (path, maxWidth, maxHeight) {
+            maxWidth = maxWidth || 1200;
+            maxHeight = maxHeight || maxWidth;
             return new Promise(function (resolve, reject) {
                 var img = new Image();
                 img.onload = function () {
-                    var scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+                    var scale = Math.min(1, maxWidth / img.naturalWidth, maxHeight / img.naturalHeight);
                     var canvas = document.createElement('canvas');
                     canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
                     canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
-                    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-                    resolve(canvas.toDataURL('image/png'));
+                    var ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.92));
                 };
                 img.onerror = function () { reject(new Error('That file is not a picture this phone can open.')); };
                 img.src = '/device-file?path=' + encodeURIComponent(path) + '&t=' + Date.now();

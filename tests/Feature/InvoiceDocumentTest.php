@@ -67,7 +67,7 @@ final class InvoiceDocumentTest extends TestCase
     {
         $data = app(InvoiceDocument::class)->data($this->invoice(['status' => InvoiceStatus::Sent]));
 
-        $this->assertStringStartsWith('data:image/png;base64,', (string) $data['qr']);
+        $this->assertStringStartsWith('data:image/svg+xml;base64,', (string) $data['qr']);
         $this->assertStringContainsString('am=3599.00', (string) $data['upiLink']);
         $this->assertStringContainsString('pa=zentro%40ybl', (string) $data['upiLink']);
     }
