@@ -12,6 +12,7 @@ use App\Settings\CompanySettings;
 use App\Support\Money;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as DomPdf;
+use Dompdf\Frame;
 use Illuminate\Support\Str;
 
 /**
@@ -23,6 +24,11 @@ use Illuminate\Support\Str;
  */
 final readonly class InvoiceDocument
 {
+    private const PT_PER_MM = 72 / 25.4;
+
+    /** 80 mm till-roll paper. */
+    private const RECEIPT_WIDTH_PT = 80 * self::PT_PER_MM;
+
     public function __construct(
         private CompanySettings $company,
         private UpiQrService $upi,
@@ -36,17 +42,40 @@ final readonly class InvoiceDocument
 
     public function pdf(Invoice $invoice): DomPdf
     {
-        $pdf = Pdf::loadHTML($this->html($invoice, true));
+        $html = $this->html($invoice, true);
 
-        if ($this->template($invoice) === InvoiceTemplate::Receipt) {
-            // 80 mm till-roll width; the height grows with the number of lines so a short bill is
-            // not a long strip of white paper.
-            $pdf->setPaper([0, 0, 80 * 2.8346, $this->receiptHeightMm($invoice) * 2.8346]);
-        } else {
-            $pdf->setPaper('a4');
+        if ($this->template($invoice) !== InvoiceTemplate::Receipt) {
+            return Pdf::loadHTML($html)->setPaper('a4');
         }
 
-        return $pdf;
+        /*
+         | A receipt is one 80 mm strip exactly as long as its content. Estimating the length from
+         | line counts was wrong whenever text wrapped or a block was taller than assumed: too long
+         | left blank paper, too short pushed the last few millimetres onto an empty-looking second
+         | page. So it is measured instead — drawn once on a sheet far longer than any receipt, the
+         | lowest point any element reaches is found, and it is drawn again on that length.
+         */
+        $probe = Pdf::loadHTML($html)->setPaper([0, 0, self::RECEIPT_WIDTH_PT, 5000 * self::PT_PER_MM])->getDomPDF();
+        $bottom = 0.0;
+
+        // Measured while drawing: dompdf discards the frame tree once render() returns.
+        // <html> and <body> are skipped — they stretch to the probe sheet's full length.
+        $probe->setCallbacks([[
+            'event' => 'end_frame',
+            'f' => function ($frame) use (&$bottom): void {
+                if (! $frame instanceof Frame || in_array($frame->get_node()->nodeName, ['html', 'body', '#document'], true)) {
+                    return;
+                }
+                $box = $frame->get_border_box();
+                $bottom = max($bottom, (float) $box['y'] + (float) $box['h']);
+            },
+        ]]);
+        $probe->render();
+
+        // + the 5 mm page margin below the content, and a hair of slack for rounding.
+        $height = $bottom + 5 * self::PT_PER_MM + 2;
+
+        return Pdf::loadHTML($html)->setPaper([0, 0, self::RECEIPT_WIDTH_PT, max($height, 80 * self::PT_PER_MM)]);
     }
 
     /**
@@ -124,25 +153,5 @@ final readonly class InvoiceDocument
         $mime = mime_content_type($file) ?: 'image/png';
 
         return 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($file));
-    }
-
-    /**
-     * A generous estimate of a receipt's printed length. Over-estimating leaves a little blank
-     * paper at the end; under-estimating would push the last lines onto a second "page".
-     */
-    private function receiptHeightMm(Invoice $invoice): float
-    {
-        $height = 150.0; // header, totals, footer
-
-        foreach ($invoice->items as $item) {
-            $height += 9 + 4 * count($item->detailLines());
-        }
-
-        $height += 5 * count($invoice->termsList());
-        $height += $invoice->hasCallout() ? 18 : 0;
-        $height += $invoice->notes ? 12 : 0;
-        $height += ($invoice->status->isPayable() && $this->company->upiId) ? 55 : 0;
-
-        return $height;
     }
 }
