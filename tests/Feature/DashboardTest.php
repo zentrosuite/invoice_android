@@ -77,11 +77,10 @@ final class DashboardTest extends TestCase
         Invoice::factory()->create(['number' => 'INV-0001', 'customer_name' => 'Rasi', 'total' => '3599.00']);
         Invoice::factory()->status(InvoiceStatus::Paid)->create(['number' => 'INV-0002', 'customer_name' => 'Kumar']);
 
-        $response = $this->actingAs($this->user)->get(route('invoices.export', ['status' => 'draft']));
-
-        $response->assertOk();
-        $this->assertStringContainsString('text/csv', (string) $response->headers->get('Content-Type'));
-        $csv = $response->streamedContent();
+        // Written into the app's storage, then offered to Android's "Save as".
+        $file = $this->actingAs($this->user)->postJson(route('invoices.export'), ['status' => 'draft'])->assertOk()->json();
+        $this->assertSame('text/csv', $file['mime']);
+        $csv = (string) file_get_contents($file['path']);
         $this->assertStringStartsWith("\xEF\xBB\xBF", $csv);
         $this->assertStringContainsString('INV-0001,' . now()->toDateString() . ',,Rasi,', $csv);
         $this->assertStringContainsString('3599.00,0.00,3599.00', $csv);

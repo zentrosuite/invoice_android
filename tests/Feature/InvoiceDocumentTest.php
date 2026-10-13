@@ -56,11 +56,11 @@ final class InvoiceDocumentTest extends TestCase
             ->assertSee('Website design')
             ->assertSee('Three Thousand Five Hundred Ninety-Nine Rupees Only');
 
-        $response = $this->actingAs($this->user)->get(route('invoices.pdf', $invoice));
-        $response->assertOk();
-        $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
-        $this->assertStringStartsWith('%PDF-', $response->getContent());
-        $this->assertStringContainsString('Invoice INV-0042 - 5 Star Sales and Service.pdf', (string) $response->headers->get('Content-Disposition'));
+        // On the phone the PDF is written into the app's storage for the native share/save calls.
+        $file = $this->actingAs($this->user)->postJson(route('invoices.pdf-file', $invoice))->assertOk()->json();
+        $this->assertSame('Invoice INV-0042 - 5 Star Sales and Service.pdf', $file['name']);
+        $this->assertSame('application/pdf', $file['mime']);
+        $this->assertStringStartsWith('%PDF-', (string) file_get_contents($file['path']));
     }
 
     public function test_an_unpaid_invoice_carries_a_upi_qr_for_the_amount_due(): void
@@ -112,12 +112,10 @@ final class InvoiceDocumentTest extends TestCase
             ->assertOk()
             ->assertDontSee('Authorised signatory');
 
-        // A real file under a scratch public/, as the upload would leave it.
-        $public = sys_get_temp_dir() . '/zi-public-' . bin2hex(random_bytes(4));
-        mkdir($public . '/uploads/company', 0o777, true);
-        $this->app->usePublicPath($public);
-        $image = imagecreatetruecolor(60, 20);
-        imagepng($image, $public . '/uploads/company/signature-test.png');
+        // A real file where the app keeps uploads (storage/, which survives app updates).
+        $file = \App\Support\Uploads::path('uploads/company/signature-test.png');
+        @mkdir(dirname($file), 0o777, true);
+        imagepng(imagecreatetruecolor(60, 20), $file);
 
         $company = app(CompanySettings::class);
         $company->signaturePath = 'uploads/company/signature-test.png';
@@ -127,7 +125,7 @@ final class InvoiceDocumentTest extends TestCase
             ->assertSee('Authorised signatory')
             ->assertSee('data:image/png;base64,', false);
 
-        (new \Illuminate\Filesystem\Filesystem)->deleteDirectory($public);
+        @unlink($file);
     }
 
     public function test_the_receipt_is_a_narrow_strip(): void
@@ -146,14 +144,15 @@ final class InvoiceDocumentTest extends TestCase
         $this->actingAs($this->user)->get(route('invoices.show', $invoice))
             ->assertOk()
             ->assertSee(route('invoices.preview', $invoice), false)
-            ->assertSee('Download PDF');
+            ->assertSee('Send on WhatsApp')
+            ->assertSee('Save PDF');
     }
 
     public function test_guests_cannot_fetch_documents(): void
     {
         $invoice = $this->invoice();
 
-        $this->get(route('invoices.pdf', $invoice))->assertRedirect(route('login'));
+        $this->post(route('invoices.pdf-file', $invoice))->assertRedirect(route('login'));
         $this->get(route('invoices.preview', $invoice))->assertRedirect(route('login'));
     }
 

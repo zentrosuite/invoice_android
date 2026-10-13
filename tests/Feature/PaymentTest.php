@@ -122,7 +122,7 @@ final class PaymentTest extends TestCase
         $this->assertSame('500.00', $invoice->balance());
     }
 
-    public function test_the_qr_message_and_customer_page_ask_only_for_the_balance(): void
+    public function test_the_qr_and_the_whatsapp_caption_ask_only_for_the_balance(): void
     {
         $invoice = $this->invoice();
         $this->pay($invoice, '1000');
@@ -132,12 +132,6 @@ final class PaymentTest extends TestCase
         $this->assertStringContainsString('am=2599.00', (string) $data['upiLink']);
 
         $this->assertStringContainsString('for ₹2,599', app(InvoiceSharing::class)->message($invoice));
-
-        $token = app(InvoiceSharing::class)->ensureToken($invoice);
-        $this->get(route('public.invoice', $token))
-            ->assertSee('Part paid')
-            ->assertSee('₹2,599')
-            ->assertSee('am=2599.00', false);
 
         $this->actingAs($this->user)->get(route('invoices.preview', $invoice))
             ->assertSee('Balance Due')

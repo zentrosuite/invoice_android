@@ -113,8 +113,9 @@ final class CustomerTest extends TestCase
         $this->assertSoftDeleted($customer);
     }
 
-    public function test_guests_cannot_reach_customers(): void
+    public function test_a_locked_app_shows_no_customers(): void
     {
+        $this->owner(); // set up, but not unlocked
         $this->get(route('customers.index'))->assertRedirect(route('login'));
         $this->getJson(route('customers.search'))->assertUnauthorized();
     }

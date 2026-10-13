@@ -77,19 +77,15 @@ final class InvoiceSettingsTest extends TestCase
         $this->assertSame(77, $settings->nextNumber);
     }
 
-    public function test_the_whatsapp_message_must_keep_the_link(): void
+    public function test_the_whatsapp_app_and_caption_are_saved(): void
     {
-        $user = $this->owner();
-
-        $this->actingAs($user)
-            ->put(route('settings.update'), $this->valid(['whatsapp_message' => 'Hi {customer}, pay soon']))
-            ->assertSessionHasErrors('whatsapp_message');
-
-        $this->actingAs($user)
-            ->put(route('settings.update'), $this->valid(['whatsapp_message' => "Hello {customer}\r\nSee {link}"]))
+        $this->actingAs($this->owner())
+            ->put(route('settings.update'), $this->valid(['whatsapp_app' => 'personal', 'whatsapp_message' => "Hello {customer}\r\nInvoice {number}"]))
             ->assertSessionHasNoErrors();
 
-        $this->assertSame("Hello {customer}\nSee {link}", app(InvoiceSettings::class)->whatsappMessage);
+        $settings = app(InvoiceSettings::class);
+        $this->assertSame('personal', $settings->whatsappApp);
+        $this->assertSame("Hello {customer}\nInvoice {number}", $settings->whatsappMessage);
     }
 
     public function test_freelancers_and_studios_start_on_the_package_design(): void
@@ -131,7 +127,8 @@ final class InvoiceSettingsTest extends TestCase
             'number_padding' => '4',
             'currency_symbol' => '₹',
             'footer_note' => 'Thank you',
-            'whatsapp_message' => 'Hi {customer}, invoice {number}: {link}',
+            'whatsapp_message' => 'Hi {customer}, invoice {number}',
+            'whatsapp_app' => 'business',
         ], $overrides);
     }
 }

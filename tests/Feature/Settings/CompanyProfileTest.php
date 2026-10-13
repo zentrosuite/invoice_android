@@ -20,10 +20,10 @@ final class CompanyProfileTest extends TestCase
     {
         parent::setUp();
 
-        // Logos are written under public/; point that at a scratch folder.
-        $this->publicPath = sys_get_temp_dir() . '/zi-public-' . bin2hex(random_bytes(4));
+        // Logos are written under storage/ on the phone; point that at a scratch folder.
+        $this->publicPath = sys_get_temp_dir() . '/zi-storage-' . bin2hex(random_bytes(4));
         mkdir($this->publicPath);
-        $this->app->usePublicPath($this->publicPath);
+        $this->app->useStoragePath($this->publicPath);
     }
 
     protected function tearDown(): void
@@ -87,7 +87,7 @@ final class CompanyProfileTest extends TestCase
 
         $first = app(CompanySettings::class)->logoPath;
         $this->assertStringEndsWith('.png', $first);
-        [$width, $height] = getimagesize(public_path($first));
+        [$width, $height] = getimagesize(\App\Support\Uploads::path($first));
         $this->assertSame(600, $width, 'Scaled to fit 800×300, keeping the 2:1 shape.');
         $this->assertSame(300, $height);
 
@@ -98,12 +98,12 @@ final class CompanyProfileTest extends TestCase
 
         $second = app(CompanySettings::class)->logoPath;
         $this->assertNotSame($first, $second);
-        $this->assertFileDoesNotExist(public_path($first), 'The replaced logo is deleted.');
-        $this->assertFileExists(public_path($second));
+        $this->assertFileDoesNotExist(\App\Support\Uploads::path($first), 'The replaced logo is deleted.');
+        $this->assertFileExists(\App\Support\Uploads::path($second));
 
         $this->actingAs($user)->put(route('company.update'), $this->valid(['remove_logo' => '1']));
         $this->assertNull(app(CompanySettings::class)->logoPath);
-        $this->assertFileDoesNotExist(public_path($second));
+        $this->assertFileDoesNotExist(\App\Support\Uploads::path($second));
     }
 
     public function test_a_signature_is_stored_beside_the_logo_and_can_be_removed(): void
@@ -117,13 +117,39 @@ final class CompanyProfileTest extends TestCase
         $company = app(CompanySettings::class);
         $path = $company->signaturePath;
         $this->assertStringStartsWith('uploads/company/signature-', $path);
-        [$width, $height] = getimagesize(public_path($path));
+        [$width, $height] = getimagesize(\App\Support\Uploads::path($path));
         $this->assertSame([600, 150], [$width, $height], 'Fitted inside 600×200.');
         $this->assertNull($company->logoPath, 'Uploading a signature leaves the logo alone.');
 
         $this->actingAs($user)->put(route('company.update'), $this->valid(['remove_signature' => '1']));
         $this->assertNull(app(CompanySettings::class)->signaturePath);
-        $this->assertFileDoesNotExist(public_path($path));
+        $this->assertFileDoesNotExist(\App\Support\Uploads::path($path));
+    }
+
+    public function test_a_picture_from_the_phone_picker_arrives_as_png_data(): void
+    {
+        ob_start();
+        imagepng(imagecreatetruecolor(900, 300));
+        $png = 'data:image/png;base64,' . base64_encode((string) ob_get_clean());
+
+        $this->actingAs($this->owner())
+            ->put(route('company.update'), $this->valid(['logo_data' => $png]))
+            ->assertSessionHasNoErrors();
+
+        $path = app(CompanySettings::class)->logoPath;
+        $this->assertStringStartsWith('uploads/company/logo-', $path);
+        $this->assertFileExists(\App\Support\Uploads::path($path));
+        // Shown in the app through the media route, not a public file.
+        $this->assertStringContainsString('/media/logo-', (string) app(CompanySettings::class)->logoUrl());
+    }
+
+    public function test_data_that_is_not_a_png_is_refused(): void
+    {
+        $this->actingAs($this->owner())
+            ->put(route('company.update'), $this->valid(['logo_data' => 'data:image/png;base64,' . base64_encode('not a picture')]))
+            ->assertSessionHasErrors('logo');
+
+        $this->assertNull(app(CompanySettings::class)->logoPath);
     }
 
     public function test_a_non_image_upload_is_rejected(): void
