@@ -3,6 +3,7 @@
 # Build the InfinityFree upload package: dist/zentro-invoices-infinityfree-<date>.zip
 #
 #   tools/build-infinityfree.sh
+#   SITE_URL=https://shop.infy.click tools/build-infinityfree.sh    # pre-set the site's address
 #
 # InfinityFree serves one fixed folder, htdocs, and cannot point it at Laravel's public/. So the
 # two halves are swapped:
@@ -21,7 +22,9 @@ WORK="$DIST/build"
 PKG="$WORK/package"
 HTDOCS="$PKG/htdocs"
 APP="$HTDOCS/_app"
-ZIP="$DIST/zentro-invoices-infinityfree-$STAMP.zip"
+SITE_URL="${SITE_URL:-}"
+SITE_HOST="$(printf '%s' "$SITE_URL" | sed -E 's#^https?://##; s#/.*$##')"
+ZIP="$DIST/zentro-invoices-${SITE_HOST:-infinityfree}-$STAMP.zip"
 
 if [ -n "$(git -C "$ROOT" status --porcelain --untracked-files=no)" ]; then
     echo "Uncommitted changes — the package is built from HEAD, so commit first." >&2
@@ -156,6 +159,11 @@ sed -i \
     -e 's/^LOG_STACK=.*/LOG_STACK=daily/' \
     "$APP/.env.example"
 grep -q '^LOG_LEVEL=' "$APP/.env.example" || echo 'LOG_LEVEL=error' >> "$APP/.env.example"
+if [ -n "$SITE_URL" ]; then
+    # Known in advance: links and redirects use it from the very first page, https included.
+    sed -i "s#^APP_URL=.*#APP_URL=${SITE_URL%/}#" "$APP/.env.example"
+    echo "   APP_URL=${SITE_URL%/}"
+fi
 
 echo "→ Folders upload tools would otherwise skip"
 # FTP clients and file managers often drop folders that hold nothing but dotfiles, and the
