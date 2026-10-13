@@ -51,6 +51,19 @@ rmdir "$APP/public"
 rm -rf "$APP"/tests "$APP"/tools "$APP"/phpunit.xml "$APP"/pint.json "$APP"/.editorconfig \
        "$APP"/.gitattributes "$APP"/.gitignore "$APP"/README.md "$APP"/database/database.sqlite
 
+echo "→ Trimming fonts"
+# Every browser this app supports loads .woff2, so the .eot/.ttf/.woff/.svg copies of the
+# Velzon icon and UI fonts never download — they only slow the upload. Line Awesome and
+# Summernote are not used at all. Inter's .ttf files stay: the PDF renderer needs TrueType.
+(
+    cd "$HTDOCS/assets/fonts"
+    rm -f la-* summernote*
+    for f in *.eot *.ttf *.woff *.svg; do
+        [ -e "$f" ] || continue
+        [ -e "${f%.*}.woff2" ] && rm -f "$f"
+    done
+)
+
 echo "→ Front controller"
 cat > "$HTDOCS/index.php" <<'PHP'
 <?php
