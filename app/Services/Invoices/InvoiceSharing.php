@@ -21,6 +21,8 @@ use Illuminate\Support\Str;
  */
 final readonly class InvoiceSharing
 {
+    public const TOKEN_LENGTH = 10;
+
     public function __construct(
         private InvoiceSettings $settings,
         private CompanySettings $company,
@@ -66,7 +68,11 @@ final readonly class InvoiceSharing
             '{customer}' => $invoice->customer_name ?: ($invoice->customer_business ?: 'there'),
             '{number}' => $invoice->number,
             '{company}' => $this->company->name,
-            '{amount}' => Money::short($invoice->total, $invoice->currency_symbol),
+            // What they are being asked for: the balance while money is owed, else the total.
+            '{amount}' => Money::short(
+                $invoice->status->isPayable() ? $invoice->balance() : $invoice->total,
+                $invoice->currency_symbol,
+            ),
             '{due}' => $due,
             '{link}' => $this->publicUrl($invoice),
         ]);
@@ -101,8 +107,16 @@ final readonly class InvoiceSharing
         $invoice->save();
     }
 
+    /**
+     * Ten letters and digits: short enough to read in a WhatsApp message, and at 62^10 (~8×10^17)
+     * combinations against a limit of 60 tries a minute, not something anyone can guess.
+     */
     private static function newToken(): string
     {
-        return Str::random(40);
+        do {
+            $token = Str::random(self::TOKEN_LENGTH);
+        } while (Invoice::query()->where('share_token', $token)->exists());
+
+        return $token;
     }
 }

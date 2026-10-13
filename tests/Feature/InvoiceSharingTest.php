@@ -39,7 +39,7 @@ final class InvoiceSharingTest extends TestCase
 
         $invoice->refresh();
         $this->assertNotNull($invoice->share_token, 'Viewing the invoice prepares its link.');
-        $this->assertSame(40, strlen($invoice->share_token));
+        $this->assertSame(10, strlen($invoice->share_token));
 
         $response->assertSee('https://wa.me/919688527308?text=', false)
             ->assertSee(route('public.invoice', $invoice->share_token), false)
@@ -126,9 +126,10 @@ final class InvoiceSharingTest extends TestCase
     {
         $this->invoice();
 
+        $this->get('/i/' . str_repeat('a', 10))->assertNotFound();
         $this->get('/i/' . str_repeat('a', 40))->assertNotFound();
         $this->get('/i/short')->assertNotFound();
-        $this->get('/i/' . str_repeat('a', 39) . '%27')->assertNotFound();
+        $this->get('/i/' . str_repeat('a', 9) . '%27')->assertNotFound();
     }
 
     public function test_resetting_the_link_kills_the_old_one(): void
@@ -144,6 +145,15 @@ final class InvoiceSharingTest extends TestCase
         auth()->logout();
         $this->get(route('public.invoice', $old))->assertNotFound();
         $this->get(route('public.invoice', $new))->assertOk();
+    }
+
+    public function test_links_made_before_tokens_were_shortened_still_open(): void
+    {
+        $invoice = $this->invoice();
+        $invoice->share_token = str_repeat('Ab3', 13) . 'x';
+        $invoice->save();
+
+        $this->get('/i/' . $invoice->share_token)->assertOk();
     }
 
     public function test_a_duplicate_gets_its_own_link(): void

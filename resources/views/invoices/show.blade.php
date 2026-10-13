@@ -12,13 +12,18 @@
 
 @section('content')
     {{-- ---- Status and actions ---------------------------------------------------------- --}}
-    <div class="card">
+    {{-- x-data so the Record payment button can dispatch to the payment form below. --}}
+    <div class="card" x-data>
         <div class="card-body d-flex flex-wrap align-items-center gap-2">
             <div class="me-auto">
                 <span class="badge {{ $s->badge() }} fs-13 me-2">{{ $s->label() }}</span>
                 <span class="text-muted fs-13">
                     @if ($s === InvoiceStatus::Paid && $invoice->paid_at)
                         Paid on {{ $invoice->paid_at->format('d M Y') }}
+                    @elseif ($s === InvoiceStatus::Partial)
+                        @money($invoice->amount_paid, $sym) paid ·
+                        <span class="fw-semibold text-body">@money($invoice->balance(), $sym) due</span>
+                        @if ($invoice->due_date?->isPast()) <span class="text-danger">· overdue</span> @endif
                     @elseif ($invoice->due_date && $s === InvoiceStatus::Sent)
                         Due {{ $invoice->due_date->format('d M Y') }}
                         @if ($invoice->due_date->isPast()) <span class="text-danger">· overdue</span> @endif
@@ -36,11 +41,10 @@
                     <button name="status" value="sent" class="btn btn-soft-primary"><i class="ri-send-plane-line me-1"></i>Finalise</button>
                 </form>
             @endif
-            @if ($s->isPayable())
-                <form method="POST" action="{{ route('invoices.status', $invoice) }}">
-                    @csrf @method('PUT')
-                    <button name="status" value="paid" class="btn btn-success"><i class="ri-check-double-line me-1"></i>Mark paid</button>
-                </form>
+            @if ($s->isPayable() && (float) $invoice->balance() > 0)
+                <button type="button" class="btn btn-success" @click="$dispatch('record-payment')">
+                    <i class="ri-money-rupee-circle-line me-1"></i>Record payment
+                </button>
             @endif
 
             <div class="dropdown">
@@ -52,8 +56,15 @@
                         @csrf
                         <button class="dropdown-item"><i class="ri-file-copy-line me-2 text-muted"></i>Duplicate</button>
                     </form>
-                    @if ($s === InvoiceStatus::Paid)
+                    @if ($s->isPayable() && (float) $invoice->balance() > 0)
                         <form method="POST" action="{{ route('invoices.status', $invoice) }}">
+                            @csrf @method('PUT')
+                            <button name="status" value="paid" class="dropdown-item"><i class="ri-check-double-line me-2 text-muted"></i>Mark fully paid</button>
+                        </form>
+                    @endif
+                    @if ($invoice->hasPayments())
+                        <form method="POST" action="{{ route('invoices.status', $invoice) }}"
+                              data-confirm="Mark {{ $invoice->number }} unpaid?" data-confirm-text="Every payment recorded against it will be removed." data-confirm-button="Mark unpaid">
                             @csrf @method('PUT')
                             <button name="status" value="sent" class="dropdown-item"><i class="ri-arrow-go-back-line me-2 text-muted"></i>Mark unpaid</button>
                         </form>
@@ -80,6 +91,100 @@
                     @endif
                 </div>
             </div>
+        </div>
+    </div>
+
+    {{-- ---- Payments received ------------------------------------------------------------------ --}}
+    @if ($invoice->payments->isNotEmpty())
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="card-title mb-0">Payments</h6>
+                <span class="fs-13">
+                    @money($invoice->amount_paid, $sym) of @money($invoice->total, $sym)
+                    @if ((float) $invoice->balance() > 0) · <span class="fw-semibold">@money($invoice->balance(), $sym) due</span>@endif
+                </span>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <tbody>
+                    @foreach ($invoice->payments as $payment)
+                        <tr>
+                            <td class="text-nowrap">{{ $payment->paid_on->format('d M Y') }}</td>
+                            <td>
+                                {{ $payment->method->label() }}
+                                @if ($payment->reference)<div class="text-muted fs-12">Ref {{ $payment->reference }}</div>@endif
+                                @if ($payment->note)<div class="text-muted fs-12">{{ $payment->note }}</div>@endif
+                            </td>
+                            <td class="text-end text-nowrap fw-medium">@money($payment->amount, $sym)</td>
+                            <td class="text-end" style="width: 1%">
+                                <form method="POST" action="{{ route('invoices.payments.destroy', [$invoice, $payment]) }}"
+                                      data-confirm="Remove this payment?" data-confirm-button="Remove">
+                                    @csrf @method('DELETE')
+                                    <button class="btn btn-icon btn-sm btn-ghost-danger" aria-label="Remove payment"><i class="ri-delete-bin-line"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+
+    {{-- ---- Record a payment ------------------------------------------------------------------- --}}
+    @php $pay = $errors->getBag('payment'); @endphp
+    <div x-data="{ open: @js($pay->any()) }" @record-payment.window="open = true; $nextTick(() => $refs.amount.select())">
+        <div class="zi-modal" x-show="open" x-cloak @keydown.escape.window="open = false" role="dialog" aria-modal="true" aria-labelledby="pay-title">
+            <div class="zi-modal-backdrop" @click="open = false"></div>
+            <form method="POST" action="{{ route('invoices.payments.store', $invoice) }}" class="zi-modal-card card mb-0">
+                @csrf
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0" id="pay-title">Record payment</h5>
+                    <button type="button" class="btn-close" @click="open = false" aria-label="Close"></button>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-sm-6">
+                            <label class="form-label" for="pay_amount">Amount received</label>
+                            <div class="input-group">
+                                <span class="input-group-text">{{ $sym }}</span>
+                                <input type="text" id="pay_amount" name="amount" inputmode="decimal" x-ref="amount" required
+                                       value="{{ old('amount', $invoice->balance()) }}"
+                                       class="form-control fw-semibold @if ($pay->has('amount')) is-invalid @endif">
+                            </div>
+                            @if ($pay->has('amount'))<div class="text-danger fs-13 mt-1">{{ $pay->first('amount') }}</div>@endif
+                            <div class="form-text">Balance @money($invoice->balance(), $sym). Enter less for a part payment.</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="pay_on">Date</label>
+                            <input type="date" id="pay_on" name="paid_on" required value="{{ old('paid_on', now()->toDateString()) }}"
+                                   class="form-control @if ($pay->has('paid_on')) is-invalid @endif">
+                            @if ($pay->has('paid_on'))<div class="text-danger fs-13 mt-1">{{ $pay->first('paid_on') }}</div>@endif
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="pay_method">Method</label>
+                            <select id="pay_method" name="method" class="form-select">
+                                @foreach (\App\Enums\PaymentMethod::cases() as $method)
+                                    <option value="{{ $method->value }}" @selected(old('method', 'upi') === $method->value)>{{ $method->label() }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="pay_ref">Reference <span class="text-muted">(optional)</span></label>
+                            <input type="text" id="pay_ref" name="reference" maxlength="80" value="{{ old('reference') }}"
+                                   placeholder="UPI ref / UTR / cheque no." class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="pay_note">Note <span class="text-muted">(optional)</span></label>
+                            <input type="text" id="pay_note" name="note" maxlength="255" value="{{ old('note') }}" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-light" @click="open = false">Cancel</button>
+                    <button type="submit" class="btn btn-success"><i class="ri-check-line me-1"></i>Save payment</button>
+                </div>
+            </form>
         </div>
     </div>
 

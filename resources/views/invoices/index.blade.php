@@ -18,6 +18,10 @@
                         <i class="ri-search-line position-absolute top-50 translate-middle-y ms-3 text-muted"></i>
                     </div>
                 </form>
+                <a href="{{ route('invoices.export', array_filter(['status' => $status?->value, 'q' => $search])) }}" class="btn btn-light"
+                   title="Download this list as a spreadsheet (CSV)">
+                    <i class="ri-file-excel-2-line"></i><span class="d-none d-sm-inline ms-1">Export</span>
+                </a>
                 <a href="{{ route('invoices.create') }}" class="btn btn-primary">
                     <i class="ri-add-line me-1"></i>New invoice
                 </a>
@@ -83,6 +87,9 @@
                             <td class="d-none d-lg-table-cell text-nowrap">{{ $invoice->invoice_date->format('d M Y') }}</td>
                             <td class="text-end text-nowrap">
                                 <span class="fw-medium">@money($invoice->total, $invoice->currency_symbol)</span>
+                                @if ($invoice->status === \App\Enums\InvoiceStatus::Partial)
+                                    <div class="text-muted fs-12">@money($invoice->balance(), $invoice->currency_symbol) due</div>
+                                @endif
                                 <div class="d-sm-none mt-1"><span class="badge {{ $invoice->status->badge() }}">{{ $invoice->status->label() }}</span></div>
                             </td>
                             <td class="d-none d-sm-table-cell text-end">

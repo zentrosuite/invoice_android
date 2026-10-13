@@ -7,10 +7,12 @@ use App\Http\Controllers\Auth\RecoveryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicInvoiceController;
 use App\Http\Controllers\Settings\CompanyProfileController;
 use App\Http\Controllers\Settings\InvoiceSettingsController;
+use App\Http\Controllers\SystemController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
@@ -34,13 +36,19 @@ Route::middleware('auth')->group(function (): void {
     Route::post('customers/quick', [CustomerController::class, 'quickStore'])->name('customers.quick');
     Route::resource('customers', CustomerController::class);
 
+    // Before the resource, or "export" is read as an invoice id.
+    Route::get('invoices/export', [InvoiceController::class, 'export'])->name('invoices.export');
     Route::resource('invoices', InvoiceController::class);
     Route::post('invoices/{invoice}/duplicate', [InvoiceController::class, 'duplicate'])->name('invoices.duplicate');
     Route::put('invoices/{invoice}/status', [InvoiceController::class, 'status'])->name('invoices.status');
     Route::get('invoices/{invoice}/preview', [InvoiceController::class, 'preview'])->name('invoices.preview');
     Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
     Route::post('invoices/{invoice}/shared', [InvoiceController::class, 'shared'])->name('invoices.shared');
+    Route::post('invoices/{invoice}/payments', [PaymentController::class, 'store'])->name('invoices.payments.store');
+    Route::delete('invoices/{invoice}/payments/{payment}', [PaymentController::class, 'destroy'])->name('invoices.payments.destroy');
     Route::post('invoices/{invoice}/reset-link', [InvoiceController::class, 'resetLink'])->name('invoices.reset-link');
+
+    Route::post('system/update', [SystemController::class, 'update'])->name('system.update');
 
     Route::get('company', [CompanyProfileController::class, 'edit'])->name('company.edit');
     Route::put('company', [CompanyProfileController::class, 'update'])->name('company.update');

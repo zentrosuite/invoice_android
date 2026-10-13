@@ -89,6 +89,18 @@
 .zi-checklist .is-done .zi-check-icon { background: var(--vz-success-bg-subtle); color: var(--vz-success); }
 .zi-checklist .is-done .fw-medium { text-decoration: line-through; color: var(--vz-secondary-color); }
 
+.zi-stat { display: block; color: inherit; transition: box-shadow .15s, transform .15s; }
+a.zi-stat:hover { box-shadow: 0 6px 18px -8px rgba(var(--vz-primary-rgb), .45); transform: translateY(-1px); }
+.zi-stat-label { font-size: .72rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--vz-secondary-color); }
+.zi-stat-value { font-size: 1.45rem; font-weight: 700; margin: .25rem 0 .1rem; color: var(--vz-heading-color, var(--vz-body-color)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zi-stat-sub { font-size: .78rem; color: var(--vz-secondary-color); }
+.zi-stat-alert { border-left: 3px solid var(--vz-danger); }
+.zi-stat-alert .zi-stat-value { color: var(--vz-danger); }
+@media (max-width: 575.98px) {
+    .zi-stat .card-body { padding: .85rem; }
+    .zi-stat-value { font-size: 1.15rem; }
+}
+
 .zi-hero-card {
     background: linear-gradient(140deg, #111633 0%, #232a7a 60%, #3a44c2 100%);
     border: 0;

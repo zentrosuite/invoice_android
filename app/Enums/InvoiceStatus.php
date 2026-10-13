@@ -7,17 +7,19 @@ namespace App\Enums;
 /**
  * Where an invoice is in its life.
  *
- *   draft ──► sent ──► paid
- *     ▲         │  ◄──── (mark unpaid)
- *     └── cancelled ◄──┘
+ *   draft ──► sent ──► partial ──► paid
+ *     ▲         │   (payments move it right; removing them moves it back)
+ *     └── cancelled
  *
- * Every status stays editable: the owner is one person correcting their own bill, not an
- * auditor's ledger. A UPI QR is printed only while there is money to collect (draft or sent).
+ * Partial and Paid are not chosen, they are worked out from the payments recorded against the
+ * invoice (PaymentService). Every status stays editable: the owner is one person correcting
+ * their own bill. A UPI QR is printed only while there is money to collect.
  */
 enum InvoiceStatus: string
 {
     case Draft = 'draft';
     case Sent = 'sent';
+    case Partial = 'partial';
     case Paid = 'paid';
     case Cancelled = 'cancelled';
 
@@ -26,6 +28,7 @@ enum InvoiceStatus: string
         return match ($this) {
             self::Draft => 'Draft',
             self::Sent => 'Unpaid',
+            self::Partial => 'Part paid',
             self::Paid => 'Paid',
             self::Cancelled => 'Cancelled',
         };
@@ -39,6 +42,7 @@ enum InvoiceStatus: string
         return match ($this) {
             self::Draft => 'bg-dark-subtle text-body',
             self::Sent => 'bg-warning-subtle text-warning',
+            self::Partial => 'bg-info-subtle text-info',
             self::Paid => 'bg-success-subtle text-success',
             self::Cancelled => 'bg-danger-subtle text-danger',
         };
@@ -46,6 +50,6 @@ enum InvoiceStatus: string
 
     public function isPayable(): bool
     {
-        return $this === self::Draft || $this === self::Sent;
+        return $this === self::Draft || $this === self::Sent || $this === self::Partial;
     }
 }

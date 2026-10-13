@@ -13,11 +13,13 @@ use App\Services\Invoices\InvoiceDocument;
 use App\Services\Invoices\InvoiceService;
 use App\Services\Invoices\InvoiceSharing;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class InvoiceController extends Controller
 {
@@ -35,10 +37,11 @@ final class InvoiceController extends Controller
             ->groupBy('status')
             ->pluck('aggregate', 'status');
 
+        // "Unpaid" means money is owed, so it includes part-paid invoices too.
+        $counts[InvoiceStatus::Sent->value] = ($counts[InvoiceStatus::Sent->value] ?? 0) + ($counts[InvoiceStatus::Partial->value] ?? 0);
+
         return view('invoices.index', [
-            'invoices' => Invoice::query()
-                ->search($search)
-                ->when($status, fn ($q) => $q->where('status', $status))
+            'invoices' => $this->filtered($status, $search)
                 ->orderByDesc('invoice_date')
                 ->orderByDesc('id')
                 ->paginate(25)
@@ -47,6 +50,42 @@ final class InvoiceController extends Controller
             'search' => $search,
             'counts' => $counts,
         ]);
+    }
+
+    /**
+     * The list as a spreadsheet, honouring the current filter and search.
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $status = InvoiceStatus::tryFrom((string) $request->query('status', ''));
+        $query = $this->filtered($status, trim((string) $request->query('q', '')))->orderBy('invoice_date')->orderBy('id');
+        $name = 'invoices-' . ($status?->value ?? 'all') . '-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($query): void {
+            $out = fopen('php://output', 'w');
+            // UTF-8 BOM, so Excel shows ₹ and Tamil names correctly instead of mojibake.
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Number', 'Date', 'Due date', 'Customer', 'Business', 'Phone', 'Status', 'Total', 'Paid', 'Balance']);
+
+            $query->chunk(500, function ($invoices) use ($out): void {
+                foreach ($invoices as $invoice) {
+                    fputcsv($out, [
+                        $invoice->number,
+                        $invoice->invoice_date->toDateString(),
+                        $invoice->due_date?->toDateString(),
+                        $invoice->customer_name,
+                        $invoice->customer_business,
+                        $invoice->customer_phone,
+                        $invoice->status->label(),
+                        $invoice->total,
+                        $invoice->amount_paid,
+                        $invoice->balance(),
+                    ]);
+                }
+            });
+
+            fclose($out);
+        }, $name, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     public function create(Request $request): View
@@ -70,6 +109,8 @@ final class InvoiceController extends Controller
     {
         // The link is made here, not on click: a WhatsApp link opened after a round trip to the
         // server is blocked as a popup, so the button must be a plain link ready on the page.
+        $invoice->load('payments');
+
         return view('invoices.show', [
             'invoice' => $invoice,
             'shareUrl' => $sharing->publicUrl($invoice),
@@ -165,6 +206,17 @@ final class InvoiceController extends Controller
             InvoiceStatus::Cancelled => "{$invoice->number} cancelled.",
             InvoiceStatus::Draft => "{$invoice->number} moved back to draft.",
         });
+    }
+
+    /**
+     * @return Builder<Invoice>
+     */
+    private function filtered(?InvoiceStatus $status, string $search): Builder
+    {
+        return Invoice::query()
+            ->search($search)
+            ->when($status === InvoiceStatus::Sent, fn ($q) => $q->whereIn('status', [InvoiceStatus::Sent, InvoiceStatus::Partial]))
+            ->when($status !== null && $status !== InvoiceStatus::Sent, fn ($q) => $q->where('status', $status));
     }
 
     private function builder(Invoice $invoice, ?Customer $customer): View

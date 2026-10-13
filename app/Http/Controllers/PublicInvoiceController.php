@@ -53,8 +53,9 @@ final class PublicInvoiceController extends Controller
 
     private function find(string $token): Invoice
     {
-        // Shape check first: a malformed token never reaches the database.
-        abort_unless(preg_match('/^[A-Za-z0-9]{40}$/', $token) === 1, 404);
+        // Shape check first: a malformed token never reaches the database. 10 characters now;
+        // the 40-character links made before the change keep working.
+        abort_unless(preg_match('/^[A-Za-z0-9]{10}$|^[A-Za-z0-9]{40}$/', $token) === 1, 404);
 
         return Invoice::query()->where('share_token', $token)->firstOrFail();
     }

@@ -20,6 +20,9 @@
     } elseif ($isCancelled) {
         $dueLabel = 'Invoice Total';
         $dueSub = 'This invoice has been cancelled';
+    } elseif ($isPartial) {
+        $dueLabel = 'Balance Due';
+        $dueSub = $short($invoice->amount_paid) . ' received of ' . $short($invoice->total) . ($qr ? ' — pay the rest via UPI' : '');
     } else {
         $dueLabel = 'Total Amount Due';
         $dueSub = $invoice->payment_terms
@@ -189,7 +192,7 @@
                             <tr><td class="k">Payment Terms</td><td class="v semi">{{ $invoice->payment_terms }}</td></tr>
                         @endif
                     </table>
-                    @if ($isPaid || $isCancelled || $isDraft)
+                    @if ($isPaid || $isCancelled || $isDraft || $isPartial)
                         <div class="right" style="margin-top: 8px">@include('documents.partials.status-stamp')</div>
                     @endif
                 </td>
@@ -224,7 +227,7 @@
                     <div class="due-wrap">
                         <div class="due-ring"></div>
                         <div class="label semi">{{ $dueLabel }}</div>
-                        <div class="due-amt xbold">{{ $short($invoice->total) }}</div>
+                        <div class="due-amt xbold">{{ $short($isPartial ? $balance : $invoice->total) }}</div>
                         <div class="due-sub">{{ $dueSub }}</div>
                     </div>
                 </td>
@@ -305,9 +308,13 @@
                         @if ((float) $invoice->tax_amount > 0)
                             <tr><td>Tax ({{ rtrim(rtrim((string) $invoice->tax_percent, '0'), '.') }}%)</td><td class="v semi">{{ $money($invoice->tax_amount) }}</td></tr>
                         @endif
+                        @if ($isPartial)
+                            <tr><td>Total</td><td class="v semi">{{ $money($invoice->total) }}</td></tr>
+                            <tr><td>Paid</td><td class="v semi">&minus; {{ $money($invoice->amount_paid) }}</td></tr>
+                        @endif
                         <tr class="grand">
-                            <td class="k semi">{{ $isPaid ? 'Total Paid' : 'Total Amount Due' }}</td>
-                            <td class="v xbold nowrap">{{ $package ? $short($invoice->total) : $money($invoice->total) }}</td>
+                            <td class="k semi">{{ $isPaid ? 'Total Paid' : ($isPartial ? 'Balance Due' : 'Total Amount Due') }}</td>
+                            <td class="v xbold nowrap">{{ $isPartial ? $money($balance) : ($package ? $short($invoice->total) : $money($invoice->total)) }}</td>
                         </tr>
                     </table>
                 </td>
@@ -360,7 +367,7 @@
                             <div class="pay">
                                 <div class="label semi">Payment Details</div>
                                 <div class="qr"><img src="{{ $qr }}" alt="UPI QR"></div>
-                                <div class="scan">Scan with any UPI app to pay <b class="semi">{{ $short($invoice->total) }}</b></div>
+                                <div class="scan">Scan with any UPI app to pay <b class="semi">{{ $short($balance) }}</b></div>
                                 <div class="upi semi"><span class="upi-k">UPI ID&nbsp;</span> {{ $company->upiId }}</div>
                             </div>
                         </td>

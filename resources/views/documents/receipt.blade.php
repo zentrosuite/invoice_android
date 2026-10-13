@@ -52,7 +52,7 @@
             <tr><td colspan="2">{{ $invoice->customer_name ?: $invoice->customer_business }}@if ($invoice->customer_phone) · {{ $invoice->customer_phone }}@endif</td></tr>
         @endif
     </table>
-    @if ($isPaid || $isCancelled || $isDraft)<div class="center" style="margin-top: 2mm">@include('documents.partials.status-stamp')</div>@endif
+    @if ($isPaid || $isCancelled || $isDraft || $isPartial)<div class="center" style="margin-top: 2mm">@include('documents.partials.status-stamp')</div>@endif
     <div class="dash"></div>
 
     <table class="lines">
@@ -88,6 +88,10 @@
             <tr><td>Tax {{ rtrim(rtrim((string) $invoice->tax_percent, '0'), '.') }}%</td><td class="v">{{ $money($invoice->tax_amount) }}</td></tr>
         @endif
         <tr class="grand"><td class="xbold">{{ $isPaid ? 'PAID' : 'TOTAL' }}</td><td class="v xbold">{{ $money($invoice->total) }}</td></tr>
+        @if ($isPartial)
+            <tr><td>Paid</td><td class="v">&minus; {{ $money($invoice->amount_paid) }}</td></tr>
+            <tr><td class="semi">Balance</td><td class="v semi">{{ $money($balance) }}</td></tr>
+        @endif
     </table>
     <div class="sub" style="margin-top: 1mm">{{ $words }}</div>
 
@@ -100,7 +104,7 @@
     @if ($qr)
         <div class="dash"></div>
         <div class="center qr">
-            <div class="semi">Scan to pay {{ $short($invoice->total) }}</div>
+            <div class="semi">Scan to pay {{ $short($balance) }}</div>
             <img src="{{ $qr }}" alt="UPI QR">
             <div class="sub">{{ $company->upiId }}</div>
         </div>

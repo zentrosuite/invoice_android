@@ -5,7 +5,8 @@
 --}}
 @use('App\Enums\InvoiceStatus')
 @php
-    $amount = \App\Support\Money::short($invoice->total, $invoice->currency_symbol);
+    // A part-paid invoice asks only for what is left.
+    $amount = \App\Support\Money::short($invoice->status === InvoiceStatus::Partial ? $invoice->balance() : $invoice->total, $invoice->currency_symbol);
     $status = $invoice->status;
 @endphp
 <!DOCTYPE html>
@@ -107,6 +108,8 @@
                 <span class="pill pill-paid">Paid</span>
             @elseif ($status === InvoiceStatus::Cancelled)
                 <span class="pill pill-cancelled">Cancelled</span>
+            @elseif ($status === InvoiceStatus::Partial)
+                <span class="pill pill-due">Part paid</span>
             @else
                 <span class="pill pill-due">
                     {{ $invoice->due_date ? 'Due ' . $invoice->due_date->format('d M') : ($invoice->payment_terms ?: 'Due') }}
@@ -120,6 +123,9 @@
                 Paid{{ $invoice->paid_at ? ' on ' . $invoice->paid_at->format('d M Y') : '' }} — thank you.
             @elseif ($status === InvoiceStatus::Cancelled)
                 This invoice has been cancelled. Nothing is due.
+            @elseif ($status === InvoiceStatus::Partial)
+                Balance due — {{ \App\Support\Money::short($invoice->amount_paid, $invoice->currency_symbol) }} of
+                {{ \App\Support\Money::short($invoice->total, $invoice->currency_symbol) }} already received. Thank you.
             @else
                 {{ $invoice->isPackage() ? 'Package total' : 'Total' }} due
             @endif

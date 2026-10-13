@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\InvoiceStatus;
 use App\Enums\InvoiceTemplate;
 use App\Enums\PricingMode;
+use Brick\Math\BigDecimal;
 use Database\Factories\InvoiceFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -44,6 +45,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $tax_percent
  * @property string $tax_amount
  * @property string $total
+ * @property string $amount_paid
  * @property array{title?: string, text?: string, amount?: string, suffix?: string, meta?: string}|null $callout
  * @property string|null $terms
  * @property string|null $notes
@@ -88,6 +90,29 @@ class Invoice extends Model
     public function items(): HasMany
     {
         return $this->hasMany(InvoiceItem::class)->orderBy('position');
+    }
+
+    /**
+     * @return HasMany<InvoicePayment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(InvoicePayment::class)->orderBy('paid_on')->orderBy('id');
+    }
+
+    /**
+     * What is still owed: total less payments, never negative.
+     */
+    public function balance(): string
+    {
+        $balance = BigDecimal::of($this->total ?? '0')->minus($this->amount_paid ?? '0');
+
+        return (string) ($balance->isNegative() ? BigDecimal::zero()->toScale(2) : $balance->toScale(2));
+    }
+
+    public function hasPayments(): bool
+    {
+        return (float) $this->amount_paid > 0;
     }
 
     public function templateEnum(): InvoiceTemplate
@@ -184,6 +209,7 @@ class Invoice extends Model
             'tax_percent' => 'decimal:2',
             'tax_amount' => 'decimal:2',
             'total' => 'decimal:2',
+            'amount_paid' => 'decimal:2',
             'callout' => 'array',
             'sent_at' => 'datetime',
             'paid_at' => 'datetime',

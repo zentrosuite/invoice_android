@@ -59,6 +59,7 @@
         }
         .stamp-paid { color: #16a34a; border-color: #16a34a; }
         .stamp-cancelled { color: #dc2626; border-color: #dc2626; }
+        .stamp-partial { color: #0284c7; border-color: #0284c7; font-size: 9pt; }
         .stamp-draft { color: #94a3b8; border-color: #cbd5e1; font-size: 9pt; }
 
         @yield('styles')

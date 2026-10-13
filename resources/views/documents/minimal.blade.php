@@ -53,7 +53,7 @@
             <td style="width: 40%">
                 <div class="title semi">Invoice</div>
                 <div class="right muted">{{ $invoice->number }}</div>
-                @if ($isPaid || $isCancelled || $isDraft)<div class="right" style="margin-top: 6px">@include('documents.partials.status-stamp')</div>@endif
+                @if ($isPaid || $isCancelled || $isDraft || $isPartial)<div class="right" style="margin-top: 6px">@include('documents.partials.status-stamp')</div>@endif
             </td>
         </tr>
     </table>
@@ -124,6 +124,10 @@
             <tr><td class="muted">Tax {{ rtrim(rtrim((string) $invoice->tax_percent, '0'), '.') }}%</td><td class="v">{{ $money($invoice->tax_amount) }}</td></tr>
         @endif
         <tr class="grand"><td class="semi">{{ $isPaid ? 'Paid' : 'Total' }}</td><td class="v semi">{{ $money($invoice->total) }}</td></tr>
+        @if ($isPartial)
+            <tr><td class="muted">Paid</td><td class="v">&minus; {{ $money($invoice->amount_paid) }}</td></tr>
+            <tr><td class="semi">Balance due</td><td class="v semi">{{ $money($balance) }}</td></tr>
+        @endif
     </table>
     <div class="right muted" style="font-size: 8pt; margin-top: 2px">{{ $words }}</div>
 
@@ -147,7 +151,7 @@
             @if ($qr)
                 <td style="width: 32mm" class="qr center">
                     <img src="{{ $qr }}" alt="UPI QR">
-                    <div class="sub">Pay by UPI<br>{{ $company->upiId }}</div>
+                    <div class="sub">Pay {{ $short($balance) }} by UPI<br>{{ $company->upiId }}</div>
                 </td>
             @endif
         </tr>

@@ -1,59 +1,178 @@
 @extends('layouts.app')
 @section('title', 'Dashboard')
 
+@php
+    $setupSteps = [
+        ['done' => (bool) $company->addressLine1, 'title' => 'Company profile', 'text' => 'Logo, address and contact details for the invoice header.', 'route' => 'company.edit'],
+        ['done' => (bool) $company->upiId, 'title' => 'UPI ID', 'text' => 'So every unpaid invoice carries a QR your customer can scan to pay.', 'route' => 'company.edit'],
+        ['done' => $hasCustomers, 'title' => 'First customer', 'text' => 'Save them once, pick them on every invoice after.', 'route' => 'customers.create'],
+        ['done' => $hasInvoices, 'title' => 'First invoice', 'text' => 'Save as draft, then send it on WhatsApp.', 'route' => 'invoices.create'],
+    ];
+    $setupLeft = collect($setupSteps)->where('done', false)->count();
+    $delta = (float) $receivedLast > 0 ? round(((float) $received - (float) $receivedLast) / (float) $receivedLast * 100) : null;
+@endphp
+
 @section('content')
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex align-items-lg-center flex-lg-row flex-column gap-2 mb-3 mt-1">
-                <div class="flex-grow-1">
-                    <h4 class="fs-16 mb-1">Hello, {{ Str::before(auth()->user()->name, ' ') }}</h4>
-                    <p class="text-muted mb-0">{{ $company->name }} &middot; {{ $profile->label() }}</p>
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3 mt-1">
+        <div class="flex-grow-1">
+            <h4 class="fs-16 mb-1">Hello, {{ Str::before(auth()->user()->name, ' ') }}</h4>
+            <p class="text-muted mb-0">{{ $company->name }} &middot; {{ now()->format('l, d M Y') }}</p>
+        </div>
+        <a href="{{ route('customers.create') }}" class="btn btn-light"><i class="ri-user-add-line me-1"></i>Customer</a>
+        <a href="{{ route('invoices.create') }}" class="btn btn-primary"><i class="ri-add-line me-1"></i>New invoice</a>
+    </div>
+
+    {{-- ---- Figures ------------------------------------------------------------------------ --}}
+    <div class="row g-3">
+        <div class="col-6 col-xl-3">
+            <a href="{{ route('invoices.index', ['status' => 'sent']) }}" class="card zi-stat h-100 mb-0">
+                <div class="card-body">
+                    <div class="zi-stat-label">Outstanding</div>
+                    <div class="zi-stat-value">{{ \App\Support\Money::short($outstanding->amount, $symbol) }}</div>
+                    <div class="zi-stat-sub">{{ $outstanding->n }} {{ Str::plural('invoice', $outstanding->n) }} unpaid</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-xl-3">
+            <a href="{{ route('invoices.index', ['status' => 'sent']) }}" @class(['card zi-stat h-100 mb-0', 'zi-stat-alert' => $overdue->n > 0])>
+                <div class="card-body">
+                    <div class="zi-stat-label">Overdue</div>
+                    <div class="zi-stat-value">{{ \App\Support\Money::short($overdue->amount, $symbol) }}</div>
+                    <div class="zi-stat-sub">{{ $overdue->n > 0 ? $overdue->n . ' past due date' : 'Nothing overdue' }}</div>
+                </div>
+            </a>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="card zi-stat h-100 mb-0">
+                <div class="card-body">
+                    <div class="zi-stat-label">Received in {{ now()->format('F') }}</div>
+                    <div class="zi-stat-value">{{ \App\Support\Money::short($received, $symbol) }}</div>
+                    <div class="zi-stat-sub">
+                        @if ($delta !== null)
+                            <span @class(['text-success' => $delta >= 0, 'text-danger' => $delta < 0])>{{ $delta >= 0 ? '▲' : '▼' }} {{ abs($delta) }}%</span>
+                            vs {{ now()->subMonthNoOverflow()->format('F') }}
+                        @else
+                            Payments recorded this month
+                        @endif
+                    </div>
                 </div>
             </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <a href="{{ route('invoices.index', ['status' => 'draft']) }}" class="card zi-stat h-100 mb-0">
+                <div class="card-body">
+                    <div class="zi-stat-label">Drafts</div>
+                    <div class="zi-stat-value">{{ $drafts }}</div>
+                    <div class="zi-stat-sub">{{ $drafts ? 'Waiting to be sent' : 'All sent' }}</div>
+                </div>
+            </a>
         </div>
     </div>
 
-    <div class="row g-3">
-        <div class="col-xl-8">
-            <div class="card h-100">
-                <div class="card-header"><h5 class="card-title mb-0">Getting started</h5></div>
-                <div class="card-body">
-                    @php
-                        $steps = [
-                            ['done' => true, 'icon' => 'ri-checkbox-circle-fill', 'title' => 'Set up your account', 'text' => 'Done. You are signed in.'],
-                            ['done' => (bool) $company->addressLine1, 'icon' => 'ri-building-line', 'title' => 'Complete your company profile', 'text' => 'Logo, address and contact details for the invoice header.', 'route' => 'company.edit'],
-                            ['done' => (bool) $company->upiId, 'icon' => 'ri-qr-code-line', 'title' => 'Add your UPI ID', 'text' => 'Every unpaid invoice will carry a QR code your customer can scan to pay.', 'route' => 'company.edit'],
-                            ['done' => false, 'icon' => 'ri-settings-3-line', 'title' => 'Review invoice settings', 'text' => 'Columns, numbering, tax and your default terms.', 'route' => 'settings.edit'],
-                            ['done' => \App\Models\Invoice::query()->exists(), 'icon' => 'ri-file-add-line', 'title' => 'Create your first invoice', 'text' => 'Add a customer, type your lines, save as draft or share on WhatsApp.', 'route' => 'invoices.create'],
-                        ];
-                    @endphp
-                    <ul class="list-unstyled mb-0 zi-checklist">
-                        @foreach ($steps as $s)
-                            <li @class(['d-flex gap-3 py-2', 'is-done' => $s['done']])>
-                                <span class="zi-check-icon flex-shrink-0">
-                                    <i class="{{ $s['done'] ? 'ri-check-line' : $s['icon'] }}"></i>
-                                </span>
-                                <span>
-                                    @if (! $s['done'] && isset($s['route']) && Route::has($s['route']))
-                                        <a href="{{ route($s['route']) }}" class="d-block fw-medium">{{ $s['title'] }}</a>
-                                    @else
-                                        <span class="d-block fw-medium">{{ $s['title'] }}</span>
-                                    @endif
-                                    <span class="d-block text-muted fs-13">{{ $s['text'] }}</span>
-                                </span>
-                            </li>
-                        @endforeach
-                    </ul>
+    <div class="row g-3 mt-0">
+        {{-- ---- Unpaid ------------------------------------------------------------------- --}}
+        <div class="col-xl-7">
+            <div class="card h-100 mb-0">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0">To collect</h5>
+                    <a href="{{ route('invoices.index', ['status' => 'sent']) }}" class="fs-13">All unpaid</a>
                 </div>
+                @if ($unpaid->isEmpty())
+                    <div class="card-body text-center text-muted py-5">
+                        <i class="ri-emotion-happy-line fs-1"></i>
+                        <p class="mb-0 mt-2">Nothing outstanding. Every invoice is paid.</p>
+                    </div>
+                @else
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <tbody>
+                            @foreach ($unpaid as $invoice)
+                                @php $late = $invoice->due_date?->isBefore(today()); @endphp
+                                <tr data-href="{{ route('invoices.show', $invoice) }}">
+                                    <td>
+                                        <a href="{{ route('invoices.show', $invoice) }}" class="fw-semibold text-body">{{ $invoice->billedTo() }}</a>
+                                        <div class="text-muted fs-12">
+                                            {{ $invoice->number }} ·
+                                            @if ($late)
+                                                <span class="text-danger">overdue {{ $invoice->due_date->diffForHumans(['parts' => 1, 'syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE]) }}</span>
+                                            @elseif ($invoice->due_date)
+                                                due {{ $invoice->due_date->format('d M') }}
+                                            @else
+                                                {{ $invoice->invoice_date->format('d M') }}
+                                            @endif
+                                        </div>
+                                    </td>
+                                    <td class="text-end text-nowrap">
+                                        <div class="fw-semibold">@money($invoice->balance(), $invoice->currency_symbol)</div>
+                                        @if ($invoice->status === \App\Enums\InvoiceStatus::Partial)
+                                            <span class="badge {{ $invoice->status->badge() }}">{{ $invoice->status->label() }}</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             </div>
         </div>
-        <div class="col-xl-4">
-            <div class="card zi-hero-card">
-                <div class="card-body">
-                    <div class="text-uppercase fs-12 fw-semibold zi-hero-eyebrow">Your invoices start as</div>
-                    <h5 class="mt-2 mb-1 text-white">{{ $profile->label() }}</h5>
-                    <p class="zi-hero-text fs-13 mb-0">{{ $profile->description() }}</p>
+
+        <div class="col-xl-5">
+            @if ($setupLeft > 0)
+                {{-- ---- Getting started — gone once everything is done ---------------------- --}}
+                <div class="card">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <h5 class="card-title mb-0">Getting started</h5>
+                        <span class="badge bg-primary-subtle text-primary">{{ 4 - $setupLeft }} / 4</span>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0 zi-checklist">
+                            @foreach ($setupSteps as $step)
+                                <li @class(['d-flex gap-3 py-2', 'is-done' => $step['done']])>
+                                    <span class="zi-check-icon flex-shrink-0"><i class="{{ $step['done'] ? 'ri-check-line' : 'ri-arrow-right-line' }}"></i></span>
+                                    <span>
+                                        @if ($step['done'])
+                                            <span class="d-block fw-medium">{{ $step['title'] }}</span>
+                                        @else
+                                            <a href="{{ route($step['route']) }}" class="d-block fw-medium">{{ $step['title'] }}</a>
+                                        @endif
+                                        <span class="d-block text-muted fs-13">{{ $step['text'] }}</span>
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
                 </div>
+            @endif
+
+            {{-- ---- Recent --------------------------------------------------------------------- --}}
+            <div class="card mb-0">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0">Recent</h5>
+                    <a href="{{ route('invoices.index') }}" class="fs-13">All invoices</a>
+                </div>
+                @if ($recent->isEmpty())
+                    <div class="card-body text-muted text-center py-4">No invoices yet.</div>
+                @else
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <tbody>
+                            @foreach ($recent as $invoice)
+                                <tr data-href="{{ route('invoices.show', $invoice) }}">
+                                    <td>
+                                        <a href="{{ route('invoices.show', $invoice) }}" class="fw-medium text-body">{{ $invoice->number }}</a>
+                                        <div class="text-muted fs-12 text-truncate" style="max-width: 46vw">{{ $invoice->billedTo() }}</div>
+                                    </td>
+                                    <td class="text-end text-nowrap">
+                                        <div class="fs-13">@money($invoice->total, $invoice->currency_symbol)</div>
+                                        <span class="badge {{ $invoice->status->badge() }}">{{ $invoice->status->label() }}</span>
+                                    </td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             </div>
         </div>
     </div>

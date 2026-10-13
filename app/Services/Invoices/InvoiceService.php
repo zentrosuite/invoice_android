@@ -25,6 +25,7 @@ final readonly class InvoiceService
         private InvoiceCalculator $calculator,
         private InvoiceNumberer $numberer,
         private InvoiceSettings $settings,
+        private PaymentService $payments,
     ) {}
 
     /**
@@ -105,6 +106,11 @@ final readonly class InvoiceService
             $invoice->save();
             $this->writeItems($invoice, $data);
 
+            // A changed total can turn a paid invoice into a part-paid one, or the reverse.
+            if ($invoice->hasPayments()) {
+                $this->payments->reconcile($invoice);
+            }
+
             return $invoice;
         });
     }
@@ -116,7 +122,7 @@ final readonly class InvoiceService
     {
         return DB::transaction(function () use ($source): Invoice {
             // Never the share link: a copy is a different invoice with its own secret.
-            $copy = $source->replicate(['number', 'status', 'sent_at', 'paid_at', 'share_token', 'shared_at', 'viewed_at']);
+            $copy = $source->replicate(['number', 'status', 'sent_at', 'paid_at', 'share_token', 'shared_at', 'viewed_at', 'amount_paid']);
             $copy->number = $this->numberer->take();
             $copy->status = InvoiceStatus::Draft;
             $copy->invoice_date = now()->startOfDay();
@@ -137,7 +143,22 @@ final readonly class InvoiceService
         });
     }
 
+    /**
+     * The status buttons. Paid and Part paid come from payments, so "mark paid" records one for
+     * the balance and "mark unpaid" removes them; the others are set directly.
+     */
     public function changeStatus(Invoice $invoice, InvoiceStatus $status): void
+    {
+        match ($status) {
+            InvoiceStatus::Paid, InvoiceStatus::Partial => $this->payments->settle($invoice),
+            InvoiceStatus::Sent => $invoice->hasPayments()
+                ? $this->payments->clear($invoice)
+                : $this->setStatus($invoice, InvoiceStatus::Sent),
+            default => $this->setStatus($invoice, $status),
+        };
+    }
+
+    private function setStatus(Invoice $invoice, InvoiceStatus $status): void
     {
         $this->applyStatus($invoice, $status);
         $invoice->save();

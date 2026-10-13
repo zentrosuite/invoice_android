@@ -86,7 +86,7 @@
                     <tr><td class="k">Date</td><td class="semi">{{ $invoice->invoice_date->format('d/m/Y') }}</td></tr>
                     @if ($invoice->due_date)<tr><td class="k">Due</td><td class="semi">{{ $invoice->due_date->format('d/m/Y') }}</td></tr>@endif
                 </table>
-                @if ($isPaid || $isCancelled || $isDraft)<div class="right" style="margin-top: 6px">@include('documents.partials.status-stamp')</div>@endif
+                @if ($isPaid || $isCancelled || $isDraft || $isPartial)<div class="right" style="margin-top: 6px">@include('documents.partials.status-stamp')</div>@endif
             </td>
         </tr>
     </table>
@@ -167,6 +167,10 @@
                         <tr><td>Tax ({{ rtrim(rtrim((string) $invoice->tax_percent, '0'), '.') }}%)</td><td class="v">{{ $money($invoice->tax_amount) }}</td></tr>
                     @endif
                     <tr class="grand"><td class="semi">{{ $isPaid ? 'Total paid' : 'Total' }}</td><td class="v xbold">{{ $money($invoice->total) }}</td></tr>
+                    @if ($isPartial)
+                        <tr><td>Paid</td><td class="v">&minus; {{ $money($invoice->amount_paid) }}</td></tr>
+                        <tr><td class="semi">Balance due</td><td class="v xbold">{{ $money($balance) }}</td></tr>
+                    @endif
                 </table>
             </td>
         </tr>
@@ -199,7 +203,7 @@
                     <div class="qr-box">
                         <div class="cap semi">Scan to pay</div>
                         <img src="{{ $qr }}" alt="UPI QR">
-                        <div class="semi" style="font-size: 9pt">{{ $short($invoice->total) }}</div>
+                        <div class="semi" style="font-size: 9pt">{{ $short($balance) }}</div>
                         <div class="sub">{{ $company->upiId }}</div>
                     </div>
                 </td>

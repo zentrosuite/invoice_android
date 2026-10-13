@@ -68,8 +68,11 @@ final readonly class InvoiceDocument
     {
         $invoice->loadMissing('items');
 
-        $payable = $invoice->status->isPayable() && (float) $invoice->total > 0;
-        $upiPayload = $payable ? $this->upi->payload($invoice->total, $invoice->number) : null;
+        // What is still owed: the QR, the "amount due" panel and the pay button all ask for the
+        // balance, so a part-paid invoice never asks for money already received.
+        $balance = $invoice->balance();
+        $payable = $invoice->status->isPayable() && (float) $balance > 0;
+        $upiPayload = $payable ? $this->upi->payload($balance, $invoice->number) : null;
 
         return [
             'invoice' => $invoice,
@@ -87,6 +90,8 @@ final readonly class InvoiceDocument
             'isPaid' => $invoice->status === InvoiceStatus::Paid,
             'isCancelled' => $invoice->status === InvoiceStatus::Cancelled,
             'isDraft' => $invoice->status === InvoiceStatus::Draft,
+            'isPartial' => $invoice->status === InvoiceStatus::Partial,
+            'balance' => $balance,
             'payable' => $payable,
             'qr' => $upiPayload === null ? null : $this->upi->renderPng($upiPayload),
             'upiLink' => $upiPayload,
