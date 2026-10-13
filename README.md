@@ -47,8 +47,11 @@ composer install
 php artisan native:install android
 python3 tools/build-app-icons.py "/path/to/Logo Draft.png"   # icon + launch images
 php artisan native:run android            # on a phone (USB debugging) or emulator
-php artisan native:package android        # release .apk
+php artisan native:package android        # release .apk — see docs/RELEASE-ANDROID.md
 ```
 
 Native plugins used: `nativephp/mobile-share` (share sheet), `smronju/nativephp-document-picker`
 (file picker and Save as), `zentro/nativephp-whatsapp` (this repo: chat + attachment).
+
+**Releasing an update:** follow [docs/RELEASE-ANDROID.md](docs/RELEASE-ANDROID.md): version
+numbers, the signing key, the build, checks, and publishing on GitHub Releases.
