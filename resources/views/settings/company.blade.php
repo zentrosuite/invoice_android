@@ -66,6 +66,31 @@
                                     </div>
                                 @endif
                             </div>
+                            <div class="col-12" x-data="{ sig: @js($company->signatureUrl()) }">
+                                <label class="form-label" for="signature">Signature</label>
+                                <div class="d-flex gap-3 align-items-center flex-wrap">
+                                    <div class="zi-logo-slot" x-show="sig" x-cloak>
+                                        <img :src="sig" alt="Signature">
+                                    </div>
+                                    <div class="flex-grow-1" style="min-width: 200px">
+                                        <input type="file" id="signature" name="signature" accept="image/png,image/jpeg,image/webp"
+                                               class="form-control @error('signature') is-invalid @enderror"
+                                               @change="$event.target.files[0] && (sig = URL.createObjectURL($event.target.files[0]))">
+                                        <div class="form-text">
+                                            Printed above "Authorised signatory". Without one, invoices leave the signatory
+                                            block out. Sign on white paper and photograph it, or use a transparent PNG.
+                                        </div>
+                                        @error('signature')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                    </div>
+                                </div>
+                                @if ($company->signatureUrl())
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" name="remove_signature" value="1" id="remove_signature"
+                                               @change="sig = $event.target.checked ? null : @js($company->signatureUrl())">
+                                        <label class="form-check-label" for="remove_signature">Remove the signature</label>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </div>

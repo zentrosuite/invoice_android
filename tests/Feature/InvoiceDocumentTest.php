@@ -104,6 +104,32 @@ final class InvoiceDocumentTest extends TestCase
             ->assertSee('Annual Domain Renewal');
     }
 
+    public function test_the_signatory_block_appears_only_with_a_signature(): void
+    {
+        $invoice = $this->invoice(['template' => 'classic']);
+
+        $this->actingAs($this->user)->get(route('invoices.preview', $invoice))
+            ->assertOk()
+            ->assertDontSee('Authorised signatory');
+
+        // A real file under a scratch public/, as the upload would leave it.
+        $public = sys_get_temp_dir() . '/zi-public-' . bin2hex(random_bytes(4));
+        mkdir($public . '/uploads/company', 0o777, true);
+        $this->app->usePublicPath($public);
+        $image = imagecreatetruecolor(60, 20);
+        imagepng($image, $public . '/uploads/company/signature-test.png');
+
+        $company = app(CompanySettings::class);
+        $company->signaturePath = 'uploads/company/signature-test.png';
+        $company->save();
+
+        $this->actingAs($this->user)->get(route('invoices.preview', $invoice))
+            ->assertSee('Authorised signatory')
+            ->assertSee('data:image/png;base64,', false);
+
+        (new \Illuminate\Filesystem\Filesystem)->deleteDirectory($public);
+    }
+
     public function test_the_receipt_is_a_narrow_strip(): void
     {
         $pdf = app(InvoiceDocument::class)->pdf($this->invoice(['template' => 'receipt']));

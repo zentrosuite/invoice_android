@@ -106,6 +106,26 @@ final class CompanyProfileTest extends TestCase
         $this->assertFileDoesNotExist(public_path($second));
     }
 
+    public function test_a_signature_is_stored_beside_the_logo_and_can_be_removed(): void
+    {
+        $user = $this->owner();
+
+        $this->actingAs($user)->put(route('company.update'), $this->valid([
+            'signature' => UploadedFile::fake()->image('sign.png', 1200, 300),
+        ]))->assertSessionHasNoErrors();
+
+        $company = app(CompanySettings::class);
+        $path = $company->signaturePath;
+        $this->assertStringStartsWith('uploads/company/signature-', $path);
+        [$width, $height] = getimagesize(public_path($path));
+        $this->assertSame([600, 150], [$width, $height], 'Fitted inside 600×200.');
+        $this->assertNull($company->logoPath, 'Uploading a signature leaves the logo alone.');
+
+        $this->actingAs($user)->put(route('company.update'), $this->valid(['remove_signature' => '1']));
+        $this->assertNull(app(CompanySettings::class)->signaturePath);
+        $this->assertFileDoesNotExist(public_path($path));
+    }
+
     public function test_a_non_image_upload_is_rejected(): void
     {
         $this->actingAs($this->owner())

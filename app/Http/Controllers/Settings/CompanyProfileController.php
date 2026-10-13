@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\CompanyProfileRequest;
-use App\Services\LogoStore;
+use App\Services\CompanyImageStore;
 use App\Services\UpiQrService;
 use App\Settings\CompanySettings;
 use Illuminate\Contracts\View\View;
@@ -28,7 +28,7 @@ final class CompanyProfileController extends Controller
         ]);
     }
 
-    public function update(CompanyProfileRequest $request, CompanySettings $company, LogoStore $logos): RedirectResponse
+    public function update(CompanyProfileRequest $request, CompanySettings $company, CompanyImageStore $images): RedirectResponse
     {
         $data = $request->validated();
 
@@ -52,19 +52,35 @@ final class CompanyProfileController extends Controller
             $company->{$property} = $value === '' ? null : $value;
         }
 
-        if ($request->hasFile('logo')) {
+        // Signatures are wide and short; 600×200 keeps a scanned one sharp at print size.
+        foreach (['logo' => ['logoPath', 800, 300], 'signature' => ['signaturePath', 600, 200]] as $field => [$property, $w, $h]) {
             try {
-                $company->logoPath = $logos->store($request->file('logo'), $company->logoPath);
+                $company->{$property} = $this->image($request, $images, $field, $company->{$property}, $w, $h);
             } catch (RuntimeException $e) {
-                return back()->withInput()->withErrors(['logo' => $e->getMessage()]);
+                return back()->withInput()->withErrors([$field => $e->getMessage()]);
             }
-        } elseif ($request->boolean('remove_logo')) {
-            $logos->delete($company->logoPath);
-            $company->logoPath = null;
         }
 
         $company->save();
 
         return redirect()->route('company.edit')->with('success', 'Company profile saved.');
+    }
+
+    /**
+     * The new path for an uploaded image, null when "remove" is ticked, or the current path.
+     */
+    private function image(CompanyProfileRequest $request, CompanyImageStore $images, string $field, ?string $current, int $maxWidth, int $maxHeight): ?string
+    {
+        if ($request->hasFile($field)) {
+            return $images->store($request->file($field), $current, $field, $maxWidth, $maxHeight);
+        }
+
+        if ($request->boolean('remove_' . $field)) {
+            $images->delete($current);
+
+            return null;
+        }
+
+        return $current;
     }
 }

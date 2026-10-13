@@ -78,7 +78,9 @@ final readonly class InvoiceDocument
             'fontUrl' => fn (string $file): string => $forPdf
                 ? public_path('assets/fonts/inter/' . $file)
                 : asset('assets/fonts/inter/' . $file),
-            'logo' => $this->logoDataUri(),
+            'logo' => $this->dataUri($this->company->logoFile()),
+            // Null means: print no signatory block at all.
+            'signature' => $this->dataUri($this->company->signatureFile()),
             'words' => $this->words->convert($invoice->total, AmountInWords::currencyWordFor($invoice->currency_symbol)),
             'money' => fn ($amount): string => Money::format($amount, $invoice->currency_symbol),
             'short' => fn ($amount): string => Money::short($amount, $invoice->currency_symbol),
@@ -108,10 +110,8 @@ final readonly class InvoiceDocument
         };
     }
 
-    private function logoDataUri(): ?string
+    private function dataUri(?string $file): ?string
     {
-        $file = $this->company->logoFile();
-
         if ($file === null) {
             return null;
         }

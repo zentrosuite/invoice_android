@@ -8,7 +8,7 @@ use Illuminate\Http\UploadedFile;
 use RuntimeException;
 
 /**
- * Stores the company logo under public/uploads.
+ * Stores the company's images — logo and signature — under public/uploads.
  *
  * public/ rather than storage/app/public: that needs `php artisan storage:link`, a symlink
  * InfinityFree cannot create. A file under public/ is served by the web server directly and is
@@ -19,18 +19,15 @@ use RuntimeException;
  * wrote — never the uploaded bytes, whatever they claimed to be. dompdf cannot draw WebP, which
  * is the other reason nothing is stored as uploaded.
  */
-final class LogoStore
+final class CompanyImageStore
 {
     public const DIRECTORY = 'uploads/company';
 
-    private const MAX_WIDTH = 800;
-
-    private const MAX_HEIGHT = 300;
-
     /**
+     * @param  string  $name  File name stem: "logo", "signature".
      * @return string The path relative to public/, e.g. "uploads/company/logo-20261013120000.png".
      */
-    public function store(UploadedFile $file, ?string $replacing): string
+    public function store(UploadedFile $file, ?string $replacing, string $name = 'logo', int $maxWidth = 800, int $maxHeight = 300): string
     {
         $source = @imagecreatefromstring((string) file_get_contents($file->getRealPath()));
 
@@ -40,7 +37,7 @@ final class LogoStore
 
         $width = imagesx($source);
         $height = imagesy($source);
-        $scale = min(1, self::MAX_WIDTH / $width, self::MAX_HEIGHT / $height);
+        $scale = min(1, $maxWidth / $width, $maxHeight / $height);
         $newWidth = max(1, (int) round($width * $scale));
         $newHeight = max(1, (int) round($height * $scale));
 
@@ -56,10 +53,10 @@ final class LogoStore
             throw new RuntimeException('The uploads folder could not be created.');
         }
 
-        $relative = self::DIRECTORY . '/logo-' . now()->format('YmdHis') . '.png';
+        $relative = self::DIRECTORY . '/' . $name . '-' . now()->format('YmdHis') . '.png';
 
         if (! imagepng($canvas, public_path($relative), 9)) {
-            throw new RuntimeException('The logo could not be saved.');
+            throw new RuntimeException('The image could not be saved.');
         }
 
         $this->delete($replacing);

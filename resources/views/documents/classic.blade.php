@@ -1,6 +1,6 @@
 {{--
     Classic design — a traditional bordered invoice for shops and traders: ruled table, totals
-    box, amount in words, payment QR and an authorised-signatory block.
+    box, amount in words, payment QR, and an authorised-signatory block when a signature is on file.
 --}}
 @extends('documents.layout')
 
@@ -55,7 +55,8 @@
     .qr-box { border: 1px solid {{ $rule }}; padding: 6px; text-align: center; }
     .qr-box img { width: 26mm; height: 26mm; }
     .sign { font-size: 8.6pt; text-align: right; }
-    .sign-line { margin-top: 9mm; border-top: 1px solid {{ $rule }}; padding-top: 3px; width: 55mm; margin-left: auto; text-align: center; }
+    .sign-img { display: block; height: 14mm; max-width: 50mm; margin: 1mm 0 0 auto; }
+    .sign-line { border-top: 1px solid {{ $rule }}; padding-top: 3px; width: 55mm; margin-left: auto; text-align: center; }
     .foot { font-size: 9pt; color: #374151; vertical-align: bottom; }
 @endsection
 
@@ -209,10 +210,14 @@
     <table style="margin-top: 5mm; page-break-inside: avoid">
         <tr>
             <td class="foot semi">{{ $invoice->footer_note }}</td>
-            <td class="sign" style="width: 60mm">
-                For <span class="semi">{{ $company->name }}</span>
-                <div class="sign-line">Authorised signatory</div>
-            </td>
+            {{-- Only with a signature on file: an empty signatory line looks unfinished. --}}
+            @if ($signature)
+                <td class="sign" style="width: 60mm">
+                    For <span class="semi">{{ $company->name }}</span>
+                    <img src="{{ $signature }}" class="sign-img" alt="">
+                    <div class="sign-line">Authorised signatory</div>
+                </td>
+            @endif
         </tr>
     </table>
 </div>

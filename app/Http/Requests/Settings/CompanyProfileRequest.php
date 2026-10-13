@@ -34,6 +34,8 @@ final class CompanyProfileRequest extends FormRequest
             'upi_payee_name' => ['nullable', 'string', 'max:50'],
             'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:4096'],
             'remove_logo' => ['nullable', 'boolean'],
+            'signature' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:4096'],
+            'remove_signature' => ['nullable', 'boolean'],
         ];
     }
 
@@ -46,6 +48,7 @@ final class CompanyProfileRequest extends FormRequest
             'phone.regex' => 'Use digits, spaces, + and - only.',
             'upi_id.regex' => 'A UPI ID looks like name@bank, e.g. 9876543210@ybl.',
             'logo.max' => 'The logo must be under 4 MB.',
+            'signature.max' => 'The signature must be under 4 MB.',
         ];
     }
 

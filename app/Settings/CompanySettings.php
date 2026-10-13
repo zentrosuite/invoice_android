@@ -41,6 +41,12 @@ class CompanySettings extends Settings
     /** Relative to the public disk. */
     public ?string $logoPath;
 
+    /**
+     * Relative to public/. Invoices print an "Authorised signatory" block only when this is set —
+     * a signatory line with nothing on it looks unfinished.
+     */
+    public ?string $signaturePath;
+
     /** Without it no payment QR is drawn — there is nobody to pay. */
     public ?string $upiId;
 
@@ -54,7 +60,7 @@ class CompanySettings extends Settings
 
     public function logoUrl(): ?string
     {
-        return $this->logoFile() === null ? null : asset($this->logoPath);
+        return $this->logoFile() === null ? null : asset((string) $this->logoPath);
     }
 
     /**
@@ -62,13 +68,17 @@ class CompanySettings extends Settings
      */
     public function logoFile(): ?string
     {
-        if ($this->logoPath === null) {
-            return null;
-        }
+        return self::existing($this->logoPath);
+    }
 
-        $path = public_path($this->logoPath);
+    public function signatureUrl(): ?string
+    {
+        return $this->signatureFile() === null ? null : asset((string) $this->signaturePath);
+    }
 
-        return is_file($path) ? $path : null;
+    public function signatureFile(): ?string
+    {
+        return self::existing($this->signaturePath);
     }
 
     public function isConfigured(): bool
@@ -92,5 +102,16 @@ class CompanySettings extends Settings
             [$this->addressLine1, $this->addressLine2, $cityLine],
             static fn (?string $line): bool => $line !== null && trim($line) !== '',
         ));
+    }
+
+    private static function existing(?string $relative): ?string
+    {
+        if ($relative === null) {
+            return null;
+        }
+
+        $path = public_path($relative);
+
+        return is_file($path) ? $path : null;
     }
 }
