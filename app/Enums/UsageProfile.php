@@ -34,8 +34,8 @@ enum UsageProfile: string
     {
         return match ($this) {
             self::Shop => 'Counter bills and digital receipts — items with quantity and rate.',
-            self::Freelancer => 'Developers, designers, consultants — services billed as a fixed amount or package.',
-            self::Studio => 'Photo, video, design or dev studios — services billed by hours or days.',
+            self::Freelancer => 'Developers, designers, consultants — services marked Included, one package total.',
+            self::Studio => 'Photo, video, design or dev studios — a package of services, or billed by hours.',
             self::Other => 'Start from a general layout and choose your own columns.',
         };
     }
@@ -70,14 +70,14 @@ enum UsageProfile: string
                 'showQuantity' => false,
                 'quantityLabel' => 'Qty',
                 'rateLabel' => 'Amount',
-                'template' => 'modern',
+                'template' => 'package',
             ],
             self::Studio => [
                 'itemLabel' => 'Service',
                 'showQuantity' => true,
                 'quantityLabel' => 'Hours',
                 'rateLabel' => 'Rate / hr',
-                'template' => 'modern',
+                'template' => 'package',
             ],
             self::Other => [
                 'itemLabel' => 'Description',

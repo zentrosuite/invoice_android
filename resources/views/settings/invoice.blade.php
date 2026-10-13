@@ -50,7 +50,7 @@
               'number_padding' => (int) old('number_padding', $settings->numberPadding),
               'currency_symbol' => old('currency_symbol', $settings->currencySymbol),
               'default_tax_percent' => old('default_tax_percent', $settings->defaultTaxPercent),
-          ]))">
+          ]), @js(old('template', $settings->template)))">
         @csrf
         @method('PUT')
 
@@ -59,6 +59,11 @@
                 <div class="card">
                     <div class="card-header"><h5 class="card-title mb-0">Columns</h5></div>
                     <div class="card-body">
+                        <div class="alert alert-info fs-13 py-2" x-show="template === 'package'" x-cloak>
+                            <i class="ri-information-line me-1"></i>
+                            The Package design lists services as <strong>Included / Not included</strong> with one
+                            total, so these columns are used only when an invoice is switched to itemised pricing.
+                        </div>
                         <div class="row g-3">
                             <div class="col-sm-6">
                                 <label class="form-label" for="item_label">Description column</label>
@@ -235,7 +240,8 @@
                             @foreach ($templates as $template)
                                 <div>
                                     <input type="radio" class="btn-check" name="template" id="tpl-{{ $template->value }}"
-                                           value="{{ $template->value }}" @checked($selectedTemplate === $template->value)>
+                                           value="{{ $template->value }}" @checked($selectedTemplate === $template->value)
+                                           x-model="template">
                                     <label class="zi-choice" for="tpl-{{ $template->value }}">
                                         <span class="d-block fw-medium">{{ $template->label() }}</span>
                                         <span class="d-block text-muted fs-12">{{ $template->description() }}</span>
@@ -258,8 +264,9 @@
 @push('scripts')
     <script>
         document.addEventListener('alpine:init', () => {
-            Alpine.data('invoiceSettings', (initial) => ({
+            Alpine.data('invoiceSettings', (initial, template) => ({
                 f: initial,
+                template: template,
                 nextInvoice() {
                     const n = String(Math.max(1, parseInt(this.f.next_number, 10) || 1));
                     return (this.f.number_prefix || '') + n.padStart(parseInt(this.f.number_padding, 10) || 1, '0');

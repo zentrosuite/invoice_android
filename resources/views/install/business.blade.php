@@ -26,7 +26,11 @@
                         <span class="d-block fs-13 text-muted mt-1">{{ $profile->description() }}</span>
                         @php $d = $profile->defaults(); @endphp
                         <span class="d-block fs-12 mt-2 setup-choice-cols">
-                            {{ $d['itemLabel'] }}@if ($d['showQuantity']) · {{ $d['quantityLabel'] }}@endif · {{ $d['rateLabel'] }}@if ($d['showQuantity']) · Amount @endif
+                            @if (\App\Enums\InvoiceTemplate::from($d['template'])->isPackage())
+                                Services · Included ✓ · one package total
+                            @else
+                                {{ $d['itemLabel'] }}@if ($d['showQuantity']) · {{ $d['quantityLabel'] }}@endif · {{ $d['rateLabel'] }}@if ($d['showQuantity']) · Amount @endif
+                            @endif
                         </span>
                     </label>
                 </div>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RecoveryController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Settings\CompanyProfileController;
@@ -25,6 +26,10 @@ Route::middleware('auth')->group(function (): void {
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('profile/password', [ProfileController::class, 'password'])->name('profile.password');
     Route::post('profile/recovery-code', [ProfileController::class, 'recoveryCode'])->name('profile.recovery');
+
+    // Before the resource, or "search" is read as a customer id.
+    Route::get('customers/search', [CustomerController::class, 'search'])->name('customers.search');
+    Route::resource('customers', CustomerController::class);
 
     Route::get('company', [CompanyProfileController::class, 'edit'])->name('company.edit');
     Route::put('company', [CompanyProfileController::class, 'update'])->name('company.update');

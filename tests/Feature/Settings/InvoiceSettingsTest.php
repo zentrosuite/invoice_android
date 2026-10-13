@@ -77,6 +77,28 @@ final class InvoiceSettingsTest extends TestCase
         $this->assertSame(77, $settings->nextNumber);
     }
 
+    public function test_freelancers_and_studios_start_on_the_package_design(): void
+    {
+        foreach ([UsageProfile::Freelancer, UsageProfile::Studio] as $profile) {
+            $settings = app(InvoiceSettings::class);
+            $settings->applyProfile($profile);
+
+            $this->assertTrue($settings->templateEnum()->isPackage(), $profile->label());
+        }
+
+        $settings->applyProfile(UsageProfile::Shop);
+        $this->assertFalse($settings->templateEnum()->isPackage());
+    }
+
+    public function test_the_package_design_can_be_chosen(): void
+    {
+        $this->actingAs($this->owner())
+            ->put(route('settings.update'), $this->valid(['template' => 'package']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('package', app(InvoiceSettings::class)->template);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>

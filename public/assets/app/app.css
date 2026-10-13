@@ -200,6 +200,16 @@
 
 .zi-col-preview th { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--vz-secondary-color); }
 
+/* ---- Lists ------------------------------------------------------------------------------ */
+
+/* A whole table row opens the record (see app.js, tr[data-href]). The name stays a real link
+   for keyboard and screen-reader users. */
+tr[data-href] { cursor: pointer; }
+
+.zi-search { min-width: 200px; }
+.zi-dl dt { font-weight: 500; color: var(--vz-secondary-color); }
+.zi-dl dd { margin-bottom: .6rem; }
+
 /* ---- Phone width ------------------------------------------------------------------------
  | Tap targets of at least 44px for primary actions, and page padding that does not eat a
  | third of a 360px screen. */

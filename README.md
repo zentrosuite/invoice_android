@@ -14,9 +14,9 @@ as-is to shared hosting such as InfinityFree.
 |---|---|---|
 | 1 | Foundation: setup wizard with usage profile, login, recovery code, app shell | done |
 | 2 | Company profile and invoice settings (logo, address, UPI ID, numbering, tax %) | done |
-| 3 | Customers | |
-| 4 | Invoice builder: free-form lines, drafts, statuses, editing | |
-| 5 | Invoice designs, PDF download, UPI QR on unpaid invoices | |
+| 3 | Customers | done |
+| 4 | Invoice builder: itemised or package pricing, drafts, statuses, editing | |
+| 5 | Invoice designs (Package, Modern, Classic, Receipt, Minimal), PDF download, UPI QR on unpaid invoices | |
 | 6 | WhatsApp sharing and public invoice link | |
 | 7 | Dashboard, payments, mobile polish, InfinityFree deploy package | |
 
@@ -25,12 +25,16 @@ as-is to shared hosting such as InfinityFree.
 Chosen during setup and changeable later. A profile only sets the defaults a new invoice starts
 from — any invoice can still hold whatever lines you type.
 
-| Profile | Columns |
-|---|---|
-| Shop / Retail | Item · Qty · Rate · Amount |
-| Freelancer | Service description · Amount (no quantity) |
-| Studio / Agency | Service · Hours · Rate / hr · Amount |
-| Something else | Description · Qty · Rate · Amount, with columns switchable |
+| Profile | Default design | Lines |
+|---|---|---|
+| Shop / Retail | Receipt | Item · Qty · Rate · Amount |
+| Freelancer | Package | Services marked Included / Not included, one package total |
+| Studio / Agency | Package | Same; switchable to Service · Hours · Rate / hr · Amount |
+| Something else | Classic | Description · Qty · Rate · Amount, with columns switchable |
+
+The **Package** design follows the 5 Star Sales and Service invoice: a list of services, each
+Included or Not included with optional sub-points, and a single total — the way a freelancer
+quotes a project.
 
 ## Local development
 
