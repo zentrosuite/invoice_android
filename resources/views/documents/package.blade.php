@@ -139,12 +139,15 @@
     .upi { margin-top: 5px; background: #fff; border: 1px solid #e4e6ee; border-radius: 6px; padding: 3px 8px; font-size: 8.4pt; color: #1f2440; }
     .upi-k { font-size: 6.8pt; letter-spacing: 1px; color: #7a7f98; text-transform: uppercase; }
 
-    .footer { height: 15mm; padding: 3.5mm 14mm 0; border-top: 1px solid #e4e6ee; }
-    .footer td { vertical-align: bottom; }
-    .thanks { font-size: 18pt; color: {{ $navy }}; letter-spacing: -0.3px; line-height: 1; }
-    .thanks-sub { font-size: 8.2pt; color: #7a7f98; margin-top: 4px; }
-    .foot-name { font-size: 10pt; color: {{ $navy }}; }
-    .foot-tag { font-size: 8.2pt; color: #7a7f98; letter-spacing: 0.3px; }
+    /* 22mm reserved = 2.6mm padding + 17.6mm content + 1.8mm bar. Content needs ~15mm, so
+       there is clear space above the bar; clipped, so it can never overlap it. */
+    .footer { height: 17.6mm; padding: 2.6mm 14mm 0; border-top: 1px solid #e4e6ee; overflow: hidden; }
+    .thanks { font-size: 14pt; color: {{ $navy }}; letter-spacing: -0.3px; line-height: 1; }
+    .foot-line { color: #5b6080; line-height: 1.3; margin-top: 1mm; }
+    .foot-line + .foot-line { margin-top: 0.3mm; }
+    .foot-name { color: {{ $navy }}; }
+    .foot-dot { color: {{ $accent }}; padding: 0 2px; }
+    .foot-tel { color: {{ $navy }}; text-decoration: none; }
     .bar-bottom td { height: 5px; padding: 0; }
 @endsection
 

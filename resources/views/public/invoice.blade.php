@@ -88,7 +88,13 @@
         .doc { margin-top: 16px; border-radius: 14px; overflow: hidden; background: #d9dbe3; }
         .doc-scale { position: relative; overflow: hidden; }
         .doc iframe { position: absolute; top: 0; left: 50%; border: 0; transform-origin: top left; background: #d9dbe3; }
-        .foot { text-align: center; font-size: 12px; color: var(--muted); margin: 18px 0 8px; }
+        .foot { text-align: center; font-size: 13px; color: var(--muted); margin: 18px 0 8px; }
+        .foot-call {
+            display: inline-flex; align-items: center; gap: 6px; margin-top: 8px;
+            min-height: 40px; padding: 0 16px; border-radius: 99px;
+            border: 1px solid var(--line); color: var(--ink); text-decoration: none; font-weight: 600;
+        }
+        .foot-call svg { width: 16px; height: 16px; }
     </style>
 </head>
 <body>
@@ -162,7 +168,16 @@
         </div>
     </div>
 
-    <div class="foot">{{ $company->name }}@if ($company->phone) · {{ $company->phone }}@endif</div>
+    <div class="foot">
+        <div>{{ $company->name }}</div>
+        @if ($company->phone)
+            {{-- Tap to call: the quickest way for a customer with a question to reach the shop. --}}
+            <a class="foot-call" href="tel:{{ preg_replace('/[^0-9+]/', '', $company->phone) }}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>
+                {{ $company->phone }}
+            </a>
+        @endif
+    </div>
 </div>
 
 <script>

@@ -111,6 +111,23 @@ final class InvoiceSharingTest extends TestCase
         $this->assertStringStartsWith('%PDF-', $pdf->getContent());
     }
 
+    public function test_the_customer_page_offers_a_call_link(): void
+    {
+        $company = app(CompanySettings::class);
+        $company->phone = '+91 85264 48260';
+        $company->save();
+
+        $invoice = $this->invoice(['footer_note' => 'We look forward to serving you again.']);
+        $token = app(InvoiceSharing::class)->ensureToken($invoice);
+
+        $this->get(route('public.invoice', $token))->assertSee('href="tel:+918526448260"', false);
+
+        // The invoice footer: closing line and business name on one line, then the call link.
+        $this->get(route('public.document', $token))
+            ->assertSeeInOrder(['Thank You!', 'We look forward to serving you again.', 'Zentro Private Limited', '+91 85264 48260'])
+            ->assertSee('href="tel:+918526448260"', false);
+    }
+
     public function test_a_paid_invoice_link_has_no_pay_button(): void
     {
         $invoice = $this->invoice(['status' => InvoiceStatus::Paid, 'paid_at' => now()]);

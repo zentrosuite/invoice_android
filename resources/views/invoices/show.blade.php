@@ -203,6 +203,10 @@
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <div class="me-auto">
                     <h6 class="mb-0">Send to {{ $invoice->customer_name ?: ($invoice->customer_business ?: 'customer') }}</h6>
+                    <div class="text-success fs-12" x-show="phone" x-cloak>
+                        <i class="ri-file-pdf-2-line"></i> Sends the PDF — choose WhatsApp, then
+                        <strong>{{ $invoice->customer_name ?: ($invoice->customer_business ?: 'the customer') }}</strong>@if ($invoice->customer_phone) ({{ $invoice->customer_phone }})@endif.
+                    </div>
                     <div class="text-muted fs-12">
                         @if ($invoice->viewed_at)
                             <i class="ri-eye-line"></i> Opened by the customer {{ $invoice->viewed_at->diffForHumans() }}
@@ -216,13 +220,15 @@
                     </div>
                 </div>
 
-                <a href="{{ $whatsappUrl }}" target="_blank" rel="noopener" class="btn btn-success" @click="reported()">
-                    <i class="ri-whatsapp-line me-1"></i>Send on WhatsApp
+                {{-- Phone: the share sheet with ONLY the PDF — WhatsApp, then the contact. No web
+                     page can address a file to a WhatsApp number directly, so that is as direct as
+                     it gets. Desktop: the customer's chat with the saved message and link. --}}
+                <a href="{{ $whatsappUrl }}" target="_blank" rel="noopener" class="btn btn-success"
+                   :class="{ disabled: phone && !file }" :aria-disabled="phone && !file" @click="send($event)">
+                    <span x-show="phone && !file && !failed" x-cloak class="spinner-border spinner-border-sm me-1"></span>
+                    <i class="ri-whatsapp-line me-1" x-show="!(phone && !file && !failed)"></i>
+                    <span x-text="phone && !file && !failed ? 'Preparing PDF…' : 'Send on WhatsApp'">Send on WhatsApp</span>
                 </a>
-                <button type="button" class="btn btn-soft-success" x-show="canShareFiles" x-cloak @click="sharePdf()" :disabled="busy">
-                    <span x-show="busy" class="spinner-border spinner-border-sm me-1"></span>
-                    <i class="ri-share-forward-line me-1" x-show="!busy"></i>Share PDF
-                </button>
                 <button type="button" class="btn btn-light" @click="copy()">
                     <i :class="copied ? 'ri-check-line' : 'ri-link'" class="me-1"></i><span x-text="copied ? 'Copied' : 'Copy link'"></span>
                 </button>
@@ -281,24 +287,46 @@
         // page scrolls rather than the frame.
         document.addEventListener('alpine:init', () => {
             Alpine.data('shareBox', (cfg) => ({
-                busy: false,
                 copied: false,
                 error: '',
-                // The system share sheet with a FILE (so WhatsApp gets the PDF itself) exists on
-                // phones; desktops get the WhatsApp link and copy-link only.
-                canShareFiles: !!(navigator.canShare && window.File
-                    && navigator.canShare({ files: [new File([''], 'x.pdf', { type: 'application/pdf' })] })),
-                pdf: null,
+                // A phone that can hand a FILE to the share sheet. Touch-primary as well as able to
+                // share files: Chrome on a Windows laptop can share files too, but there the saved
+                // message to the customer's chat is what is wanted.
+                phone: window.matchMedia('(hover: none) and (pointer: coarse)').matches
+                    && !!(navigator.canShare && window.File
+                        && navigator.canShare({ files: [new File([''], 'x.pdf', { type: 'application/pdf' })] })),
+                file: null,
+                failed: false,
 
                 init() {
-                    // Fetched ahead of the tap: the share sheet must open within the tap's
-                    // "user activation", which a slow download could outlast.
-                    if (this.canShareFiles) { this.loadPdf(); }
+                    // Downloaded before the tap: the share sheet only opens straight from a tap,
+                    // and waiting on a download first would lose it.
+                    if (this.phone) { this.loadPdf(); }
                 },
                 loadPdf() {
-                    return this.pdf ??= fetch(cfg.pdfUrl, { credentials: 'same-origin' })
+                    this.failed = false;
+                    fetch(cfg.pdfUrl, { credentials: 'same-origin' })
                         .then((r) => { if (!r.ok) { throw new Error(); } return r.blob(); })
-                        .then((blob) => new File([blob], cfg.filename, { type: 'application/pdf' }));
+                        .then((blob) => { this.file = new File([blob], cfg.filename, { type: 'application/pdf' }); })
+                        .catch(() => { this.failed = true; this.error = 'Could not prepare the PDF. Tap again to send the message and link instead.'; });
+                },
+                send(event) {
+                    // Desktop, or the PDF could not be prepared: the wa.me link opens as usual.
+                    if (!this.phone || this.failed) { this.reported(); return; }
+
+                    event.preventDefault();
+                    if (!this.file) { return; } // still preparing — the button says so
+
+                    this.error = '';
+                    navigator.share({ files: [this.file] })
+                        .then(() => this.reported())
+                        .catch((e) => {
+                            // AbortError is closing the sheet without sending — not a failure.
+                            if (e && e.name !== 'AbortError') {
+                                this.failed = true;
+                                this.error = 'Sharing did not open. Tap again to send the message and link instead.';
+                            }
+                        });
                 },
                 reported() {
                     const token = document.querySelector('meta[name="csrf-token"]').content;
@@ -310,21 +338,6 @@
                     document.addEventListener('visibilitychange', () => {
                         if (document.visibilityState === 'visible') { location.reload(); }
                     }, { once: true });
-                },
-                async sharePdf() {
-                    this.error = '';
-                    this.busy = true;
-                    try {
-                        const file = await this.loadPdf();
-                        await navigator.share({ files: [file], text: cfg.text });
-                        this.reported();
-                    } catch (e) {
-                        // AbortError is the person closing the sheet — not a failure.
-                        if (e && e.name !== 'AbortError') { this.error = 'Could not open sharing. Use Send on WhatsApp instead.'; }
-                        this.pdf = null;
-                    } finally {
-                        this.busy = false;
-                    }
                 },
                 async copy() {
                     try {
