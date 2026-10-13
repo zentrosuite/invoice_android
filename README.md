@@ -12,7 +12,7 @@ This branch differs from the website (`zentrosuite/invoice`) in a few deliberate
 | MySQL on the host | SQLite on the phone, migrated automatically on start |
 | Customer link `/i/…` + WhatsApp message | **Send on WhatsApp opens the customer's chat with the PDF attached** (own plugin, `packages/zentro-whatsapp`) |
 | Download PDF / CSV | Android **Save as** (Downloads, Google Drive…) and the share sheet |
-| — | **Backup / Restore**: one `.zentrobackup` file (database + logo + signature); dashboard reminder after 7 days |
+| — | **Backup / Restore**: one `.zentrobackup` file (database + logo + signature); restore from the first welcome screen or the Backup page; dashboard reminder after 7 days |
 | Logo in `public/uploads` | Logo in `storage/app/uploads` (public/ is replaced by app updates) |
 
 ## Where the data is stored
@@ -32,7 +32,8 @@ Everything stays on the phone, in the app's private storage:
   machine.
 - **Uninstalling, a factory reset or losing the phone deletes it.** That is what Backup is for:
   one `.zentrobackup` file (database + logo + signature) saved to Google Drive or Downloads, or
-  sent on WhatsApp, and Restore on the new phone. The dashboard reminds the owner after 7 days
+  sent on WhatsApp. On the new phone, "Restore it instead" on the first welcome screen brings
+  it all back (PIN included) without setting up first. The dashboard reminds the owner after 7 days
   without a backup.
 - **Android's own Google backup** is still on with default rules, but it is not guaranteed to
   include this folder. Treat the app's Backup file as the real safety net.

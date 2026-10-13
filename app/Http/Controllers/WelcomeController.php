@@ -6,20 +6,27 @@ namespace App\Http\Controllers;
 
 use App\Enums\UsageProfile;
 use App\Models\User;
+use App\Services\Backup\BackupService;
 use App\Settings\CompanySettings;
 use App\Settings\InvoiceSettings;
+use App\Support\PickedFile;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use RuntimeException;
 
 /**
  * First launch: how the app will be used, the business name, then a PIN.
  *
  * Nothing is written until the PIN is set — the business details wait in the session, so
  * closing the app half way through simply starts the welcome again.
+ *
+ * Or, on a new phone or after a reinstall, restore a backup instead: the backup brings the
+ * business, the invoices and its own PIN, so the next screen is the PIN prompt.
  */
 final class WelcomeController extends Controller
 {
@@ -107,5 +114,33 @@ final class WelcomeController extends Controller
         $code = $request->session()->get('recovery_code');
 
         return $code ? view('welcome.done', ['recoveryCode' => $code]) : redirect()->route('dashboard');
+    }
+
+    /**
+     * Only reachable before any PIN exists (EnsureSetUp closes the welcome routes after that),
+     * so it can never overwrite data that is already on the phone.
+     */
+    public function restore(Request $request, BackupService $backups): JsonResponse
+    {
+        if (User::query()->exists()) {
+            return response()->json(['error' => 'This phone is already set up. Use Backup in the menu to restore.'], 409);
+        }
+
+        $path = PickedFile::resolve($request->input('path'));
+
+        if ($path === null) {
+            return response()->json(['error' => 'That file could not be opened.'], 422);
+        }
+
+        try {
+            $backups->restore($path);
+        } catch (RuntimeException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        $request->session()->forget(self::SESSION_BUSINESS);
+        $request->session()->regenerateToken();
+
+        return response()->json(['restored' => true, 'redirect' => route('login')]);
     }
 }

@@ -127,4 +127,36 @@ final class PinTest extends TestCase
         $this->actingAs($user)->post(route('profile.recovery'), ['current_pin' => '1234'])->assertSessionHas('recovery_code');
         $this->assertTrue($user->refresh()->recoveryCodeMatches(session('recovery_code')));
     }
+
+    public function test_the_first_welcome_screen_offers_to_restore_a_backup(): void
+    {
+        $this->get(route('welcome'))->assertOk()
+            ->assertSee('Moving to a new phone?')
+            ->assertSee('Restore from a backup file');
+    }
+
+    public function test_welcome_restore_rejects_files_the_picker_did_not_provide(): void
+    {
+        $this->postJson(route('welcome.restore'), ['path' => '/etc/passwd'])
+            ->assertStatus(422)->assertJson(['error' => 'That file could not be opened.']);
+    }
+
+    public function test_welcome_restore_rejects_a_file_that_is_not_a_backup(): void
+    {
+        $dir = sys_get_temp_dir() . '/zi-test-' . bin2hex(random_bytes(4)) . '/cache/picked-documents';
+        mkdir($dir, 0o777, true);
+        file_put_contents($dir . '/holiday.jpg', 'not a backup');
+
+        $this->postJson(route('welcome.restore'), ['path' => $dir . '/holiday.jpg'])
+            ->assertStatus(422)->assertJson(['error' => 'That is not a Zentro Invoice backup file.']);
+
+        $this->assertSame(0, User::query()->count());
+    }
+
+    public function test_welcome_restore_is_closed_once_the_phone_is_set_up(): void
+    {
+        User::factory()->create();
+
+        $this->postJson(route('welcome.restore'), ['path' => '/tmp/x'])->assertRedirect(route('dashboard'));
+    }
 }

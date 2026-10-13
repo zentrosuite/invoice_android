@@ -26,6 +26,8 @@ Route::post('welcome', [WelcomeController::class, 'storeBusiness'])->name('welco
 Route::get('welcome/pin', [WelcomeController::class, 'pin'])->name('welcome.pin');
 Route::post('welcome/pin', [WelcomeController::class, 'storePin'])->name('welcome.pin.store');
 Route::get('welcome/done', [WelcomeController::class, 'done'])->name('welcome.done');
+// A new phone or a reinstall: bring a backup back instead of setting up from scratch.
+Route::post('welcome/restore', [WelcomeController::class, 'restore'])->name('welcome.restore');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('login', [LoginController::class, 'create'])->name('login');
