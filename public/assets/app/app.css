@@ -1,0 +1,123 @@
+/*
+ | Zentro Invoices — overrides on top of Velzon.
+ |
+ | Kept small: use the theme's classes (.card, .table, .badge, .btn-soft-*) first. This file holds
+ | the brand colour, the few app-specific pieces, and the phone-width rules every screen needs
+ | (target 360px, comfortable at 390px, in light and dark).
+ */
+
+/* ---- Brand colour --------------------------------------------------------------------------
+ | Velzon's corporate primary is a light periwinkle (#687cfe). Zentro's indigo is the colour of
+ | the logo and of the invoice designs, so the app wears the same one. Dark mode gets a lighter
+ | tint of it, because #3a44c2 on #212529 does not reach readable contrast for link text. */
+:root,
+[data-bs-theme=light] {
+    --vz-primary: #3a44c2;
+    --vz-primary-rgb: 58, 68, 194;
+    --vz-primary-text-emphasis: #2f37a3;
+    --vz-primary-bg-subtle: #eef0fc;
+    --vz-primary-border-subtle: #c5c9f2;
+    --vz-link-color: #3a44c2;
+    --vz-link-color-rgb: 58, 68, 194;
+    --vz-link-hover-color: #2f37a3;
+    --zi-navy: #111633;
+}
+
+[data-bs-theme=dark] {
+    --vz-primary: #7c84e8;
+    --vz-primary-rgb: 124, 132, 232;
+    --vz-primary-text-emphasis: #a9b1f5;
+    --vz-primary-bg-subtle: rgba(124, 132, 232, .15);
+    --vz-primary-border-subtle: #4a52a8;
+    --vz-link-color: #a9b1f5;
+    --vz-link-color-rgb: 169, 177, 245;
+    --vz-link-hover-color: #c8cdfa;
+}
+
+/* ---- Sidebar brand: the Zentro lockup with the product name beside it ------------------ */
+.navbar-brand-box .zi-logo-lg {
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
+}
+.zi-brand-sub {
+    font-size: .82rem;
+    font-weight: 600;
+    letter-spacing: .03em;
+    padding-left: .55rem;
+    border-left: 1px solid var(--vz-border-color);
+    color: var(--vz-primary);
+    line-height: 1.4;
+}
+
+/* Sidebar menu: active and hover in the brand colour rather than Velzon's periwinkle. */
+:root {
+    --vz-vertical-menu-item-active-color: var(--vz-primary);
+    --vz-vertical-menu-item-hover-color: var(--vz-primary);
+    --vz-vertical-menu-item-active-bg: var(--vz-primary-bg-subtle);
+}
+.navbar-menu .navbar-nav .nav-link.active {
+    color: var(--vz-primary);
+    background-color: var(--vz-primary-bg-subtle);
+    border-radius: 6px;
+}
+
+/* ---- Sign-in backdrop: the theme's photo is not shipped; a brand gradient replaces it. -- */
+.zi-auth-bg {
+    background-image: linear-gradient(140deg, #111633 0%, #232a7a 55%, #3a44c2 100%) !important;
+}
+.zi-auth-bg .bg-overlay { opacity: .25; }
+
+/* ---- Recovery code ---------------------------------------------------------------------- */
+.zi-recovery {
+    font: 600 1.2rem/1.4 var(--vz-font-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
+    letter-spacing: .08em;
+    word-break: break-all;
+}
+
+/* ---- Dashboard -------------------------------------------------------------------------- */
+.zi-check-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--vz-primary-bg-subtle);
+    color: var(--vz-primary);
+    font-size: 1.1rem;
+}
+.zi-checklist .is-done .zi-check-icon { background: var(--vz-success-bg-subtle); color: var(--vz-success); }
+.zi-checklist .is-done .fw-medium { text-decoration: line-through; color: var(--vz-secondary-color); }
+
+.zi-hero-card {
+    background: linear-gradient(140deg, #111633 0%, #232a7a 60%, #3a44c2 100%);
+    border: 0;
+    overflow: hidden;
+    position: relative;
+}
+.zi-hero-card::after {
+    content: "";
+    position: absolute;
+    right: -40px;
+    top: -40px;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: 22px solid rgba(124, 132, 232, .22);
+}
+.zi-hero-eyebrow { color: #a9b1f5; letter-spacing: .08em; }
+.zi-hero-text { color: #c8cdf0; }
+
+/* ---- Phone width ------------------------------------------------------------------------
+ | Tap targets of at least 44px for primary actions, and page padding that does not eat a
+ | third of a 360px screen. */
+@media (max-width: 575.98px) {
+    .page-content { padding-left: .25rem; padding-right: .25rem; }
+    .container-fluid { padding-left: .75rem; padding-right: .75rem; }
+    .btn:not(.btn-sm):not(.btn-icon):not(.btn-close) { min-height: 44px; }
+    .card-body { padding: 1rem; }
+    /* Velzon pulls the title bar out by 1.5rem to meet the gutter; the gutter is narrower here. */
+    .page-title-box { margin-left: -.75rem; margin-right: -.75rem; padding-left: .75rem; padding-right: .75rem; }
+}
+
+[x-cloak] { display: none !important; }
