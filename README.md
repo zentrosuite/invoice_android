@@ -15,6 +15,28 @@ This branch differs from the website (`zentrosuite/invoice`) in a few deliberate
 | — | **Backup / Restore**: one `.zentrobackup` file (database + logo + signature); dashboard reminder after 7 days |
 | Logo in `public/uploads` | Logo in `storage/app/uploads` (public/ is replaced by app updates) |
 
+## Where the data is stored
+
+Everything stays on the phone, in the app's private storage:
+
+```
+/data/data/com.zentrosuite.invoice/app_storage/persisted_data/database/database.sqlite
+/data/data/com.zentrosuite.invoice/app_storage/persisted_data/storage/app/uploads/   (logo, signature)
+```
+
+- **Private:** only Zentro Invoice can read it. Other apps and the file manager cannot, and
+  no root or setup is needed.
+- **App updates keep it.** NativePHP leaves `persisted_data` alone and runs new migrations on
+  start. Updates **must be signed with the same release key**: a different key forces an
+  uninstall, which deletes the data. Never regenerate the keystore; keep a copy of it off this
+  machine.
+- **Uninstalling, a factory reset or losing the phone deletes it.** That is what Backup is for:
+  one `.zentrobackup` file (database + logo + signature) saved to Google Drive or Downloads, or
+  sent on WhatsApp, and Restore on the new phone. The dashboard reminds the owner after 7 days
+  without a backup.
+- **Android's own Google backup** is still on with default rules, but it is not guaranteed to
+  include this folder. Treat the app's Backup file as the real safety net.
+
 ## Build
 
 ```bash
