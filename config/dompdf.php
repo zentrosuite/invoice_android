@@ -15,7 +15,9 @@ return [
     */
     'show_warnings' => false,   // Throw an Exception on warnings from dompdf
 
-    'public_path' => null,  // Override the public path if needed
+    // public_path(), not base_path('public'): on InfinityFree the web root is htdocs/ and the
+    // app sits in htdocs/_app, so there is no public/ beside it (see tools/build-infinityfree.sh).
+    'public_path' => public_path(),
 
     // Dejavu Sans font is missing glyphs for converted entities, turn it off if you need to show € and £.
     'convert_entities' => true,
@@ -78,7 +80,9 @@ return [
          * direct class use like:
          * $dompdf = new DOMPDF();  $dompdf->load_html($htmldata); $dompdf->render(); $pdfdata = $dompdf->output();
          */
-        'chroot' => realpath(base_path()),
+        // Both roots: the app (views) and the web root, which holds the Inter fonts the PDFs embed.
+        // On InfinityFree the web root is outside the app folder rather than inside it.
+        'chroot' => array_values(array_unique(array_filter([realpath(base_path()), realpath(public_path())]))),
 
         /**
          * Protocol whitelist

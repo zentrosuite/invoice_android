@@ -9,10 +9,10 @@
             <i class="ri-save-3-line me-1"></i>Save changes
         </button>
     @else
-        <button type="submit" class="btn btn-light" :disabled="submitting" @click="saveAs = 'draft'" data-save="draft">
+        <button type="submit" class="btn btn-light" :disabled="submitting" data-save="draft">
             Save draft
         </button>
-        <button type="submit" class="btn btn-primary" :disabled="submitting" @click="saveAs = 'sent'" data-save="sent">
+        <button type="submit" class="btn btn-primary" :disabled="submitting" data-save="sent">
             <i class="ri-check-line me-1"></i>Save invoice
         </button>
     @endif

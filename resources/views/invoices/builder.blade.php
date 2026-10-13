@@ -85,7 +85,7 @@
 
 @section('content')
     <form method="POST" action="{{ $editing ? route('invoices.update', $invoice) : route('invoices.store') }}"
-          x-data="invoiceBuilder(@js($state))" @submit="submitting = true" @input="dirty = true"
+          x-data="invoiceBuilder(@js($state))" @submit="onSubmit($event)" @input="dirty = true"
           class="zi-builder" novalidate>
         @csrf
         @if ($editing) @method('PUT') @endif
@@ -94,10 +94,11 @@
         <input type="hidden" name="template" :value="mode === 'package' ? '{{ $packageTemplate }}' : itemisedTemplate">
         <input type="hidden" name="show_quantity" :value="showQuantity ? 1 : 0">
         @unless ($editing)
-            {{-- Which save button was pressed. A hidden field rather than the buttons' own name/value:
-                 the buttons disable themselves on submit, and a disabled submitter can drop out of
-                 the form data. --}}
-            <input type="hidden" name="status" :value="saveAs">
+            {{-- Which save button was pressed. A hidden field rather than the buttons' own name/value
+                 (the buttons disable themselves on submit, and a disabled submitter can drop out
+                 of the form data). Written directly by onSubmit(), never through an Alpine
+                 binding: bindings update a tick later, after the browser has read the form. --}}
+            <input type="hidden" name="status" value="draft" x-ref="saveAs">
         @endunless
 
         @error('items')

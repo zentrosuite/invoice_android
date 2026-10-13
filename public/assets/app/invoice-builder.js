@@ -46,7 +46,6 @@ document.addEventListener('alpine:init', function () {
 
             dirty: false,
             submitting: false,
-            saveAs: 'draft',
 
             picker: { open: false, term: '', results: [], loading: false, active: 0, request: 0 },
             quick: { open: false, saving: false, failed: '', errors: {}, form: {} },
@@ -65,6 +64,18 @@ document.addEventListener('alpine:init', function () {
                         event.returnValue = '';
                     }
                 });
+            },
+
+            /**
+             * The submit event fires before the browser collects the form data, so a value set
+             * here is the one sent. Which button was pressed comes from event.submitter.
+             */
+            onSubmit: function (event) {
+                var save = event.submitter && event.submitter.dataset ? event.submitter.dataset.save : null;
+                if (save && this.$refs.saveAs) {
+                    this.$refs.saveAs.value = save;
+                }
+                this.submitting = true;
             },
 
             /* ---- Lines ---------------------------------------------------------------- */
