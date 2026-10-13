@@ -24,7 +24,8 @@ final class Navigation
         ['heading' => true, 'label' => 'Setup'],
         ['route' => 'company.edit', 'label' => 'Company profile', 'icon' => 'ri-building-line', 'match' => 'company.*'],
         ['route' => 'settings.edit', 'label' => 'Invoice settings', 'icon' => 'ri-settings-3-line', 'match' => 'settings.*'],
-        ['route' => 'profile.edit', 'label' => 'My profile', 'icon' => 'ri-account-circle-line', 'match' => 'profile.*'],
+        ['route' => 'backup.index', 'label' => 'Backup', 'icon' => 'ri-shield-check-line', 'match' => 'backup.*'],
+        ['route' => 'profile.edit', 'label' => 'Security', 'icon' => 'ri-lock-password-line', 'match' => 'profile.*'],
     ];
 
     /**

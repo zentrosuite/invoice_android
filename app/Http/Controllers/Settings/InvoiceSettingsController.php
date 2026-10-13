@@ -54,6 +54,7 @@ final class InvoiceSettingsController extends Controller
         $settings->defaultNotes = $text($data['default_notes'] ?? null);
         $settings->footerNote = $text($data['footer_note'] ?? null);
         $settings->whatsappMessage = trim(str_replace("\r\n", "\n", $data['whatsapp_message']));
+        $settings->whatsappApp = $data['whatsapp_app'];
         $settings->save();
 
         return redirect()->route('settings.edit')->with('success', 'Invoice settings saved.');

@@ -5,52 +5,58 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * The PIN screen. One user, so there is nothing to type but the 4 digits.
+ */
 final class LoginController extends Controller
 {
     private const MAX_ATTEMPTS = 5;
 
+    private const THROTTLE_KEY = 'pin-unlock';
+
     public function create(): View
     {
-        return view('auth.login');
+        return view('auth.pin');
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
-        ]);
+        $data = $request->validate(['pin' => ['required', 'digits:4']], ['pin.digits' => 'Enter your 4-digit PIN.']);
 
-        $key = Str::lower($credentials['email']) . '|' . $request->ip();
-
-        if (RateLimiter::tooManyAttempts($key, self::MAX_ATTEMPTS)) {
+        if (RateLimiter::tooManyAttempts(self::THROTTLE_KEY, self::MAX_ATTEMPTS)) {
             throw ValidationException::withMessages([
-                'email' => sprintf('Too many attempts. Try again in %d seconds.', RateLimiter::availableIn($key)),
+                'pin' => sprintf('Too many wrong PINs. Try again in %d seconds.', RateLimiter::availableIn(self::THROTTLE_KEY)),
             ]);
         }
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
-            RateLimiter::hit($key);
+        $user = User::query()->first();
 
-            throw ValidationException::withMessages([
-                'email' => 'That email and password do not match.',
-            ]);
+        if ($user === null || ! Hash::check($data['pin'], $user->password)) {
+            RateLimiter::hit(self::THROTTLE_KEY, 60);
+
+            throw ValidationException::withMessages(['pin' => 'Wrong PIN.']);
         }
 
-        RateLimiter::clear($key);
+        RateLimiter::clear(self::THROTTLE_KEY);
+        Auth::login($user);
         $request->session()->regenerate();
+        $request->session()->put('last_activity', time());
 
         return redirect()->intended(route('dashboard'));
     }
 
+    /**
+     * "Lock": back to the PIN screen.
+     */
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('web')->logout();

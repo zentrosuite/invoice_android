@@ -2,32 +2,32 @@
 
 declare(strict_types=1);
 
-use App\Http\Middleware\RedirectIfNotInstalled;
-use App\Installer\Installation;
+use App\Http\Middleware\EnsureSetUp;
+use App\Http\Middleware\LockWhenIdle;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
 /*
-| Runs before the framework is configured, and has to: a fresh upload has no .env, so no
-| APP_KEY, and the default session and cache drivers point at the database the user has come
-| to set up. This creates .env from the template, generates a key and pins sessions to files
-| until the installer has a database. Cheap, idempotent, and never throws.
+| Zentro Invoice — the Android app.
+|
+| The same Laravel application as the website, running on the phone inside NativePHP with its
+| own SQLite database. There is no web installer here: NativePHP creates the database and runs
+| the migrations when the app starts, and EnsureSetUp sends a first launch to the welcome
+| screen. Sign-in is a 4-digit PIN (LockWhenIdle locks again after a few idle minutes).
 */
-Installation::bootstrap(dirname(__DIR__));
-
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__ . '/../routes/web.php',
         commands: __DIR__ . '/../routes/console.php',
         health: '/up',
-        then: function (): void {
-            // Applies its own 'web' middleware inside the file.
-            require base_path('routes/install.php');
-        },
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(prepend: [RedirectIfNotInstalled::class]);
+        $middleware->web(append: [EnsureSetUp::class, LockWhenIdle::class]);
+        // Laravel runs its own sign-in check early; "is the app set up at all?" must come first,
+        // or a first launch would be sent to the PIN screen before a PIN exists.
+        $middleware->prependToPriorityList(before: AuthenticatesRequests::class, prepend: EnsureSetUp::class);
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn () => route('dashboard'));
     })

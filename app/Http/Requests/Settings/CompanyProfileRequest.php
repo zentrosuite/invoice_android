@@ -36,6 +36,9 @@ final class CompanyProfileRequest extends FormRequest
             'remove_logo' => ['nullable', 'boolean'],
             'signature' => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:4096'],
             'remove_signature' => ['nullable', 'boolean'],
+            // On the phone a picked picture arrives as a PNG data URL (see settings/company.blade.php).
+            'logo_data' => ['nullable', 'string', 'max:20000000', 'starts_with:data:image/png;base64,'],
+            'signature_data' => ['nullable', 'string', 'max:20000000', 'starts_with:data:image/png;base64,'],
         ];
     }
 

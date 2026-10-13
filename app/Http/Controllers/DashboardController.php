@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Enums\InvoiceStatus;
 use App\Models\Invoice;
 use App\Models\InvoicePayment;
+use App\Settings\BackupSettings;
 use App\Settings\CompanySettings;
 use App\Settings\InvoiceSettings;
 use Illuminate\Contracts\View\View;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 final class DashboardController extends Controller
 {
-    public function __invoke(CompanySettings $company, InvoiceSettings $settings): View
+    public function __invoke(CompanySettings $company, InvoiceSettings $settings, BackupSettings $backup): View
     {
         $owed = [InvoiceStatus::Sent->value, InvoiceStatus::Partial->value];
         $today = now()->toDateString();
@@ -59,6 +60,8 @@ final class DashboardController extends Controller
             'recent' => Invoice::query()->latest('updated_at')->limit(6)->get(),
             'hasInvoices' => Invoice::query()->exists(),
             'hasCustomers' => DB::table('customers')->whereNull('deleted_at')->exists(),
+            'backupOverdue' => $backup->isOverdue(Invoice::query()->exists()),
+            'lastBackup' => $backup->lastSaved(),
         ]);
     }
 }

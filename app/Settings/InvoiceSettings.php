@@ -59,10 +59,13 @@ class InvoiceSettings extends Settings
     public ?string $footerNote;
 
     /**
-     * The message "Send on WhatsApp" pre-fills. Placeholders: {customer} {number} {company}
-     * {amount} {due} {link}. See App\Services\Invoices\InvoiceSharing.
+     * The caption sent with the invoice PDF on WhatsApp. Placeholders: {customer} {number}
+     * {company} {amount} {due}. See App\Services\Invoices\InvoiceSharing.
      */
     public string $whatsappMessage;
+
+    /** Which WhatsApp the app opens first: 'business' (WhatsApp Business) or 'personal'. */
+    public string $whatsappApp;
 
     public static function group(): string
     {

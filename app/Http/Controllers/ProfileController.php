@@ -7,11 +7,11 @@ namespace App\Http\Controllers;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 /**
- * The owner's own login details — not the business, which is the company profile.
+ * Security: change the PIN, issue a new recovery code.
  */
 final class ProfileController extends Controller
 {
@@ -20,37 +20,28 @@ final class ProfileController extends Controller
         return view('profile.edit', ['user' => $request->user()]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function pin(Request $request): RedirectResponse
     {
-        $user = $request->user();
-
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email:rfc', 'max:150', Rule::unique('users')->ignore($user->id)],
+        $data = $request->validateWithBag('pin', [
+            'current_pin' => ['required', 'digits:4'],
+            'pin' => ['required', 'digits:4', 'confirmed'],
+        ], [
+            'pin.digits' => 'The new PIN must be exactly 4 digits.',
+            'pin.confirmed' => 'The two new PINs do not match.',
         ]);
 
-        $user->fill($data)->save();
+        $this->checkPin($request, $data['current_pin'], 'pin');
 
-        return back()->with('success', 'Profile saved.');
-    }
+        $request->user()->update(['password' => $data['pin']]);
 
-    public function password(Request $request): RedirectResponse
-    {
-        $data = $request->validateWithBag('password', [
-            'current_password' => ['required', 'current_password'],
-            'password' => ['required', 'confirmed', Password::min(8)],
-        ]);
-
-        $request->user()->update(['password' => $data['password']]);
-
-        return back()->with('success', 'Password changed.');
+        return back()->with('success', 'PIN changed.');
     }
 
     public function recoveryCode(Request $request): RedirectResponse
     {
-        $request->validateWithBag('recovery', [
-            'current_password' => ['required', 'current_password'],
-        ]);
+        $data = $request->validateWithBag('recovery', ['current_pin' => ['required', 'digits:4']]);
+
+        $this->checkPin($request, $data['current_pin'], 'recovery');
 
         $user = $request->user();
         $code = $user->issueRecoveryCode();
@@ -59,5 +50,12 @@ final class ProfileController extends Controller
         return back()
             ->with('success', 'New recovery code issued. The previous one no longer works.')
             ->with('recovery_code', $code);
+    }
+
+    private function checkPin(Request $request, string $pin, string $bag): void
+    {
+        if (! Hash::check($pin, $request->user()->password)) {
+            throw ValidationException::withMessages(['current_pin' => 'That is not your current PIN.'])->errorBag($bag);
+        }
     }
 }

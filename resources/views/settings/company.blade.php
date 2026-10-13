@@ -20,6 +20,7 @@
               'pincode' => $field('pincode', $company->pincode),
               'tax_id' => $field('tax_id', $company->taxId),
               'logo' => $company->logoUrl(),
+              'signature' => $company->signatureUrl(),
           ]))">
         @csrf
         @method('PUT')
@@ -51,11 +52,16 @@
                                         <img :src="f.logo" alt="Logo">
                                     </div>
                                     <div class="flex-grow-1" style="min-width: 200px">
-                                        <input type="file" id="logo" name="logo" accept="image/png,image/jpeg,image/webp"
-                                               class="form-control @error('logo') is-invalid @enderror"
-                                               @change="pickLogo($event)">
-                                        <div class="form-text">PNG, JPG or WebP, up to 4 MB. A transparent PNG looks best.</div>
+                                        {{-- The phone's picker, then a canvas turns the picture into a PNG
+                                             here in the page (the phone's PHP cannot read JPEG). --}}
+                                        <input type="hidden" name="logo_data" x-ref="logoData">
+                                        <button type="button" class="btn btn-soft-primary" id="logo"
+                                                @click="choose('logo', $refs.logoData)" :disabled="picking">
+                                            <i class="ri-image-add-line me-1"></i><span x-text="picking === 'logo' ? 'Opening…' : 'Choose picture'"></span>
+                                        </button>
+                                        <div class="form-text">A transparent PNG looks best.</div>
                                         @error('logo')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                        <div class="text-danger fs-13 mt-1" x-show="pickError" x-text="pickError" x-cloak></div>
                                     </div>
                                 </div>
                                 @if ($company->logoUrl())
@@ -66,16 +72,18 @@
                                     </div>
                                 @endif
                             </div>
-                            <div class="col-12" x-data="{ sig: @js($company->signatureUrl()) }">
+                            <div class="col-12">
                                 <label class="form-label" for="signature">Signature</label>
                                 <div class="d-flex gap-3 align-items-center flex-wrap">
-                                    <div class="zi-logo-slot" x-show="sig" x-cloak>
-                                        <img :src="sig" alt="Signature">
+                                    <div class="zi-logo-slot" x-show="f.signature" x-cloak>
+                                        <img :src="f.signature" alt="Signature">
                                     </div>
                                     <div class="flex-grow-1" style="min-width: 200px">
-                                        <input type="file" id="signature" name="signature" accept="image/png,image/jpeg,image/webp"
-                                               class="form-control @error('signature') is-invalid @enderror"
-                                               @change="$event.target.files[0] && (sig = URL.createObjectURL($event.target.files[0]))">
+                                        <input type="hidden" name="signature_data" x-ref="signatureData">
+                                        <button type="button" class="btn btn-soft-primary" id="signature"
+                                                @click="choose('signature', $refs.signatureData)" :disabled="picking">
+                                            <i class="ri-quill-pen-line me-1"></i><span x-text="picking === 'signature' ? 'Opening…' : 'Choose picture'"></span>
+                                        </button>
                                         <div class="form-text">
                                             Printed above "Authorised signatory". Without one, invoices leave the signatory
                                             block out. Sign on white paper and photograph it, or use a transparent PNG.
@@ -86,7 +94,7 @@
                                 @if ($company->signatureUrl())
                                     <div class="form-check mt-2">
                                         <input class="form-check-input" type="checkbox" name="remove_signature" value="1" id="remove_signature"
-                                               @change="sig = $event.target.checked ? null : @js($company->signatureUrl())">
+                                               @change="f.signature = $event.target.checked ? null : @js($company->signatureUrl())">
                                         <label class="form-check-label" for="remove_signature">Remove the signature</label>
                                     </div>
                                 @endif
@@ -251,9 +259,17 @@
                         .filter(Boolean).join(' ');
                     return [this.f.address_line1, this.f.address_line2, cityLine].filter(Boolean).join(', ');
                 },
-                pickLogo(event) {
-                    const file = event.target.files[0];
-                    if (file) { this.f.logo = URL.createObjectURL(file); }
+                picking: null,
+                pickError: '',
+                /** Phone picker → PNG data URL → hidden field, previewed straight away. */
+                choose(field, input) {
+                    this.picking = field;
+                    this.pickError = '';
+                    ZentroNative.pickFile(['image/*'])
+                        .then((file) => file ? ZentroNative.imageAsPng(file.path) : null)
+                        .then((png) => { if (png) { input.value = png; this.f[field] = png; } })
+                        .catch((e) => { this.pickError = e.message; })
+                        .finally(() => { this.picking = null; });
                 },
             }));
         });

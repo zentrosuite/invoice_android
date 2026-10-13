@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Support\Uploads;
+
 use Illuminate\Http\UploadedFile;
 use RuntimeException;
 
@@ -47,7 +49,7 @@ final class CompanyImageStore
         imagefill($canvas, 0, 0, imagecolorallocatealpha($canvas, 0, 0, 0, 127));
         imagecopyresampled($canvas, $source, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
 
-        $directory = public_path(self::DIRECTORY);
+        $directory = Uploads::path(self::DIRECTORY);
 
         if (! is_dir($directory) && ! mkdir($directory, 0o775, true) && ! is_dir($directory)) {
             throw new RuntimeException('The uploads folder could not be created.');
@@ -55,7 +57,7 @@ final class CompanyImageStore
 
         $relative = self::DIRECTORY . '/' . $name . '-' . now()->format('YmdHis') . '.png';
 
-        if (! imagepng($canvas, public_path($relative), 9)) {
+        if (! imagepng($canvas, Uploads::path($relative), 9)) {
             throw new RuntimeException('The image could not be saved.');
         }
 
@@ -68,7 +70,7 @@ final class CompanyImageStore
     {
         // Only ever inside our own folder, whatever the stored value says.
         if ($relative !== null && str_starts_with($relative, self::DIRECTORY . '/') && ! str_contains($relative, '..')) {
-            @unlink(public_path($relative));
+            @unlink(Uploads::path($relative));
         }
     }
 }

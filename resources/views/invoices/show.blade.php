@@ -188,48 +188,46 @@
         </div>
     </div>
 
-    {{-- ---- Send to the customer ------------------------------------------------------------
-         WhatsApp is a plain link built on the server (see InvoiceController::show): opening it
-         after an async request would be blocked as a popup. The press is reported in the
-         background, which turns a draft into an unpaid invoice. --}}
-    <div class="card zi-share" x-data="shareBox(@js([
+    {{-- ---- Send to the customer --------------------------------------------------------------
+         On the phone the PDF itself goes: WhatsApp opens on this customer's chat with it attached
+         (ZentroWhatsApp plugin), or the share sheet, or Android's "Save as". Each first asks the
+         server to render the PDF into the app's storage (invoices.pdf-file). --}}
+    <div class="card zi-share" x-data="sendBox(@js([
+        'pdfUrl' => route('invoices.pdf-file', $invoice),
         'sharedUrl' => route('invoices.shared', $invoice),
-        'pdfUrl' => route('invoices.pdf', $invoice),
-        'link' => $shareUrl,
+        'phone' => $invoice->whatsappNumber(),
         'text' => $shareText,
-        'filename' => app(\App\Services\Invoices\InvoiceDocument::class)->filename($invoice),
+        'app' => app(\App\Settings\InvoiceSettings::class)->whatsappApp,
     ]))">
         <div class="card-body">
-            <div class="d-flex flex-wrap align-items-center gap-2">
-                <div class="me-auto">
-                    <h6 class="mb-0">Send to {{ $invoice->customer_name ?: ($invoice->customer_business ?: 'customer') }}</h6>
-                    <div class="text-muted fs-12">
-                        @if ($invoice->viewed_at)
-                            <i class="ri-eye-line"></i> Opened by the customer {{ $invoice->viewed_at->diffForHumans() }}
-                        @elseif ($invoice->shared_at)
-                            Sent {{ $invoice->shared_at->diffForHumans() }} · not opened yet
-                        @elseif ($invoice->status === InvoiceStatus::Draft)
-                            Sending finalises this draft as unpaid.
-                        @else
-                            Not sent yet
-                        @endif
-                    </div>
+            <div class="mb-2">
+                <h6 class="mb-0">Send to {{ $invoice->customer_name ?: ($invoice->customer_business ?: 'customer') }}</h6>
+                <div class="text-muted fs-12">
+                    @if ($invoice->shared_at)
+                        Sent {{ $invoice->shared_at->diffForHumans() }}
+                    @elseif ($invoice->status === InvoiceStatus::Draft)
+                        Sending finalises this draft as unpaid.
+                    @else
+                        Not sent yet
+                    @endif
                 </div>
+            </div>
 
-                {{-- Always the customer's own chat, phone and desktop alike, with the saved message
-                     and the invoice link. A web page cannot attach a file to a wa.me chat, so the
-                     PDF itself goes by the separate Share PDF button on phones. --}}
-                <a href="{{ $whatsappUrl }}" target="_blank" rel="noopener" class="btn btn-success" @click="reported()">
-                    <i class="ri-whatsapp-line me-1"></i>Send on WhatsApp
-                </a>
-                <button type="button" class="btn btn-soft-success" x-show="phone" x-cloak @click="sharePdf()"
-                        :disabled="!file && !failed">
-                    <span x-show="!file && !failed" class="spinner-border spinner-border-sm me-1"></span>
-                    <i class="ri-file-pdf-2-line me-1" x-show="file || failed"></i>Share PDF
+            <div class="d-grid gap-2 zi-send-grid">
+                <button type="button" class="btn btn-success btn-lg" @click="whatsapp()" :disabled="busy">
+                    <span x-show="busy === 'whatsapp'" class="spinner-border spinner-border-sm me-1"></span>
+                    <i class="ri-whatsapp-line me-1" x-show="busy !== 'whatsapp'"></i>Send on WhatsApp
                 </button>
-                <button type="button" class="btn btn-light" @click="copy()">
-                    <i :class="copied ? 'ri-check-line' : 'ri-link'" class="me-1"></i><span x-text="copied ? 'Copied' : 'Copy link'"></span>
-                </button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-soft-success flex-fill" @click="share()" :disabled="busy">
+                        <span x-show="busy === 'share'" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="ri-share-forward-line me-1" x-show="busy !== 'share'"></i>Share PDF
+                    </button>
+                    <button type="button" class="btn btn-soft-primary flex-fill" @click="save()" :disabled="busy">
+                        <span x-show="busy === 'save'" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="ri-download-2-line me-1" x-show="busy !== 'save'"></i>Save PDF
+                    </button>
+                </div>
             </div>
 
             @unless ($invoice->whatsappNumber())
@@ -242,32 +240,16 @@
                 </div>
             @endunless
 
-            <div class="zi-share-link mt-3">
-                <span class="text-muted fs-12 text-truncate">{{ $shareUrl }}</span>
-                <form method="POST" action="{{ route('invoices.reset-link', $invoice) }}" class="flex-shrink-0"
-                      data-confirm="Make a new link?" data-confirm-text="The link you already sent will stop working." data-confirm-button="New link">
-                    @csrf
-                    <button type="submit" class="btn btn-link btn-sm p-0 fs-12">Reset link</button>
-                </form>
-            </div>
+            <div class="text-success fs-12 mt-2" x-show="note" x-text="note" x-cloak></div>
             <div class="text-danger fs-13 mt-2" x-show="error" x-text="error" x-cloak></div>
         </div>
     </div>
 
-    {{-- ---- The invoice, in its design ---------------------------------------------------
-         The very page the PDF is made from, framed and scaled down to fit. A frame rather than
-         inline markup so the design's own styles never meet the app's. --}}
     <div class="zi-doc-toolbar">
-        <a href="{{ route('invoices.pdf', $invoice) }}" class="btn btn-primary">
-            <i class="ri-download-2-line me-1"></i>Download PDF
+        <a href="{{ route('invoices.preview', $invoice) }}" class="btn btn-light">
+            <i class="ri-fullscreen-line me-1"></i>Full size
         </a>
-        <a href="{{ route('invoices.pdf', [$invoice, 'inline' => 1]) }}" target="_blank" rel="noopener" class="btn btn-light">
-            <i class="ri-printer-line me-1"></i>Print
-        </a>
-        <a href="{{ route('invoices.preview', $invoice) }}" target="_blank" rel="noopener" class="btn btn-light">
-            <i class="ri-fullscreen-line me-1"></i><span class="d-none d-sm-inline">Full size</span><span class="d-sm-none">Open</span>
-        </a>
-        <span class="text-muted fs-13 ms-auto d-none d-md-inline">{{ $invoice->templateEnum()->label() }} design</span>
+        <span class="text-muted fs-13 ms-auto">{{ $invoice->templateEnum()->label() }} design</span>
     </div>
 
     <div class="zi-doc-frame" x-data="docFrame()" x-init="init()">
@@ -284,64 +266,45 @@
         // Fit the framed page to the available width, and size the frame to its content so the
         // page scrolls rather than the frame.
         document.addEventListener('alpine:init', () => {
-            Alpine.data('shareBox', (cfg) => ({
-                copied: false,
+            Alpine.data('sendBox', (cfg) => ({
+                busy: null,
                 error: '',
-                // A phone that can hand a FILE to the share sheet. Touch-primary as well as able to
-                // share files: Chrome on a Windows laptop can share files too, but there the saved
-                // message to the customer's chat is what is wanted.
-                phone: window.matchMedia('(hover: none) and (pointer: coarse)').matches
-                    && !!(navigator.canShare && window.File
-                        && navigator.canShare({ files: [new File([''], 'x.pdf', { type: 'application/pdf' })] })),
-                file: null,
-                failed: false,
+                note: '',
 
-                init() {
-                    // Downloaded before the tap: the share sheet only opens straight from a tap,
-                    // and waiting on a download first would lose it.
-                    if (this.phone) { this.loadPdf(); }
+                /** Render the PDF into the app's storage; {path, name, mime, ms}. */
+                pdf() {
+                    return ZentroNative.post(cfg.pdfUrl);
                 },
-                loadPdf() {
-                    this.failed = false;
-                    fetch(cfg.pdfUrl, { credentials: 'same-origin' })
-                        .then((r) => { if (!r.ok) { throw new Error(); } return r.blob(); })
-                        .then((blob) => { this.file = new File([blob], cfg.filename, { type: 'application/pdf' }); })
-                        .catch(() => { this.failed = true; this.error = 'Could not prepare the PDF. Tap Share PDF to try again.'; });
-                },
-                /**
-                 * Share PDF (phones): the system share sheet with just the file. Prepared before
-                 * the tap, because the sheet only opens straight from one.
-                 */
-                sharePdf() {
-                    if (!this.file) { if (this.failed) { this.loadPdf(); } return; }
+                run(kind, action) {
+                    this.busy = kind;
                     this.error = '';
-                    navigator.share({ files: [this.file] })
-                        .then(() => this.reported())
-                        .catch((e) => {
-                            // AbortError is closing the sheet without sending — not a failure.
-                            if (e && e.name !== 'AbortError') { this.error = 'Sharing did not open. Use Send on WhatsApp or Download PDF instead.'; }
-                        });
+                    this.note = '';
+                    return this.pdf()
+                        .then((file) => {
+                            this.note = 'PDF ready in ' + (file.ms / 1000).toFixed(1) + ' s';
+                            return action(file);
+                        })
+                        .catch((e) => { this.error = e.message || 'Something went wrong.'; })
+                        .finally(() => { this.busy = null; });
                 },
                 reported() {
-                    const token = document.querySelector('meta[name="csrf-token"]').content;
-                    fetch(cfg.sharedUrl, {
-                        method: 'POST', keepalive: true, credentials: 'same-origin',
-                        headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' },
-                    }).catch(() => {});
-                    // Back from WhatsApp: show the new status.
+                    ZentroNative.post(cfg.sharedUrl).catch(() => {});
+                    // Back from WhatsApp: show the new status (a draft is now unpaid).
                     document.addEventListener('visibilitychange', () => {
                         if (document.visibilityState === 'visible') { location.reload(); }
                     }, { once: true });
                 },
-                async copy() {
-                    try {
-                        await navigator.clipboard.writeText(cfg.link);
-                    } catch (e) {
-                        const t = document.createElement('textarea');
-                        t.value = cfg.link; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove();
-                    }
-                    this.copied = true;
-                    setTimeout(() => this.copied = false, 1800);
+                whatsapp() {
+                    this.run('whatsapp', (file) => ZentroNative.whatsappFile(file.path, cfg.phone, cfg.text, cfg.app)
+                        .then(() => this.reported()));
+                },
+                share() {
+                    this.run('share', (file) => ZentroNative.shareFile(file.path, cfg.text, file.name)
+                        .then(() => this.reported()));
+                },
+                save() {
+                    this.run('save', (file) => ZentroNative.saveFile(file.path, file.name, file.mime)
+                        .then((saved) => { if (saved) { this.note = 'Saved as ' + saved; } }));
                 },
             }));
 

@@ -11,6 +11,7 @@ use App\Services\UpiQrService;
 use App\Settings\CompanySettings;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
 use RuntimeException;
 
 /**
@@ -73,6 +74,24 @@ final class CompanyProfileController extends Controller
     {
         if ($request->hasFile($field)) {
             return $images->store($request->file($field), $current, $field, $maxWidth, $maxHeight);
+        }
+
+        // The phone sends the picked picture as a PNG data URL rather than a file upload.
+        if ($request->filled($field . '_data')) {
+            $bytes = base64_decode(substr((string) $request->input($field . '_data'), strlen('data:image/png;base64,')), true);
+
+            if ($bytes === false || ! str_starts_with($bytes, "\x89PNG")) {
+                throw new RuntimeException('That picture could not be read.');
+            }
+
+            $tmp = tempnam(sys_get_temp_dir(), 'zi');
+            file_put_contents($tmp, $bytes);
+
+            try {
+                return $images->store(new UploadedFile($tmp, $field . '.png', 'image/png', null, true), $current, $field, $maxWidth, $maxHeight);
+            } finally {
+                @unlink($tmp);
+            }
         }
 
         if ($request->boolean('remove_' . $field)) {

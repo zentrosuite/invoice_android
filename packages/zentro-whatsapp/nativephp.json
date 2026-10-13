@@ -1,0 +1,22 @@
+{
+    "name": "zentro/nativephp-whatsapp",
+    "version": "1.0.0",
+    "description": "Open a WhatsApp chat with a given number with a file already attached.",
+    "namespace": "ZentroWhatsApp",
+    "platforms": ["android"],
+    "bridge_functions": [
+        {
+            "name": "ZentroWhatsApp.SendFile",
+            "android": "com.zentrosuite.whatsapp.WhatsAppFunctions.SendFile",
+            "description": "Open the chat for a phone number in WhatsApp (Business first, then personal) with a file attached; falls back to the share sheet"
+        }
+    ],
+    "android": {
+        "min_version": 26,
+        "permissions": [],
+        "dependencies": {
+            "implementation": []
+        }
+    },
+    "events": []
+}

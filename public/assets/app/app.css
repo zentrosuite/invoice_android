@@ -363,6 +363,29 @@ tr[data-href] { cursor: pointer; }
     .zi-doc-toolbar .btn { flex: 1 1 auto; }
 }
 
+/* ---- PIN field: one numeric input, shown as four boxes ---------------------------------- */
+.zi-pin-field { position: relative; }
+.zi-pin-boxes { display: flex; justify-content: center; gap: .75rem; cursor: text; }
+.zi-pin-box {
+    width: 52px;
+    height: 60px;
+    border-radius: 12px;
+    border: 2px solid var(--vz-border-color);
+    display: grid;
+    place-items: center;
+    font-size: 2rem;
+    line-height: 1;
+    color: var(--vz-primary);
+    background: var(--vz-secondary-bg);
+    transition: border-color .15s, box-shadow .15s;
+}
+.zi-pin-box.filled { border-color: var(--vz-primary); }
+.zi-pin-field:focus-within .zi-pin-box.current { border-color: var(--vz-primary); box-shadow: 0 0 0 3px rgba(var(--vz-primary-rgb), .18); }
+/* The real input sits invisibly over the boxes, so tapping them brings up the number pad. */
+.zi-pin-wrap { position: relative; width: max-content; margin: 0 auto; }
+.zi-pin-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; caret-color: transparent; font-size: 16px; }
+.zi-send-grid .btn-lg { min-height: 52px; }
+
 /* ---- Phone width ------------------------------------------------------------------------
  | Tap targets of at least 44px for primary actions, and page padding that does not eat a
  | third of a 360px screen. */

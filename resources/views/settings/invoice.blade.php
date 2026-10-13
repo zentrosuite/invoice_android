@@ -171,12 +171,23 @@
                 <div class="card" x-data="{ msg: @js(old('whatsapp_message', $settings->whatsappMessage)) }">
                     <div class="card-header"><h5 class="card-title mb-0"><i class="ri-whatsapp-line text-success me-1"></i>WhatsApp message</h5></div>
                     <div class="card-body">
-                        <label class="form-label" for="whatsapp_message">Message sent with each invoice</label>
+                        <label class="form-label">Open</label>
+                        <div class="d-flex gap-2 mb-3">
+                            @foreach (['business' => 'WhatsApp Business', 'personal' => 'WhatsApp'] as $value => $label)
+                                <div class="flex-fill">
+                                    <input type="radio" class="btn-check" name="whatsapp_app" id="wa-{{ $value }}" value="{{ $value }}"
+                                           @checked(old('whatsapp_app', $settings->whatsappApp) === $value)>
+                                    <label class="zi-choice text-center py-2" for="wa-{{ $value }}">{{ $label }}</label>
+                                </div>
+                            @endforeach
+                        </div>
+                        <div class="form-text mt-n2 mb-3">If it is not installed, the other one opens instead.</div>
+                        <label class="form-label" for="whatsapp_message">Caption sent with the invoice PDF</label>
                         <textarea id="whatsapp_message" name="whatsapp_message" rows="7" maxlength="1000" x-model="msg"
                                   class="form-control @error('whatsapp_message') is-invalid @enderror">{{ old('whatsapp_message', $settings->whatsappMessage) }}</textarea>
                         @error('whatsapp_message')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         <div class="d-flex flex-wrap gap-1 mt-2">
-                            @foreach (['{customer}' => 'Customer name', '{number}' => 'Invoice number', '{amount}' => 'Total', '{due}' => 'Due date or terms', '{company}' => 'Your business', '{link}' => 'Invoice link'] as $tag => $what)
+                            @foreach (['{customer}' => 'Customer name', '{number}' => 'Invoice number', '{amount}' => 'Total', '{due}' => 'Due date or terms', '{company}' => 'Your business'] as $tag => $what)
                                 <button type="button" class="btn btn-sm btn-light" title="{{ $what }}"
                                         @click="msg = msg + (msg.endsWith(' ') || msg.endsWith('\n') || msg === '' ? '' : ' ') + '{{ $tag }}'">{{ $tag }}</button>
                             @endforeach
@@ -188,7 +199,7 @@
                             .replaceAll('{amount}', @js($settings->currencySymbol) + '3,599')
                             .replaceAll('{due}', 'due on receipt')
                             .replaceAll('{company}', @js(app(\App\Settings\CompanySettings::class)->name))
-                            .replaceAll('{link}', @js(url('/i/')) + '/AbC…xYz')"></div>
+                            .replaceAll('{link}', '')"></div>
                     </div>
                 </div>
             </div>

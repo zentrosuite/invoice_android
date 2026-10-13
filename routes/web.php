@@ -4,31 +4,42 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RecoveryController;
+use App\Http\Controllers\BackupController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DeviceFileController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\PublicInvoiceController;
 use App\Http\Controllers\Settings\CompanyProfileController;
 use App\Http\Controllers\Settings\InvoiceSettingsController;
-use App\Http\Controllers\SystemController;
+use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Route;
+
+// The launch animation: NativePHP opens the app here (config: nativephp.start_url).
+Route::view('launch', 'launch')->name('launch');
+
+// First launch only (EnsureSetUp closes these once a PIN exists).
+Route::get('welcome', [WelcomeController::class, 'business'])->name('welcome');
+Route::post('welcome', [WelcomeController::class, 'storeBusiness'])->name('welcome.business');
+Route::get('welcome/pin', [WelcomeController::class, 'pin'])->name('welcome.pin');
+Route::post('welcome/pin', [WelcomeController::class, 'storePin'])->name('welcome.pin.store');
+Route::get('welcome/done', [WelcomeController::class, 'done'])->name('welcome.done');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('login', [LoginController::class, 'create'])->name('login');
     Route::post('login', [LoginController::class, 'store'])->name('login.store');
-    Route::get('forgot-password', [RecoveryController::class, 'create'])->name('recover');
-    Route::post('forgot-password', [RecoveryController::class, 'store'])->name('recover.store');
+    Route::get('forgot-pin', [RecoveryController::class, 'create'])->name('recover');
+    Route::post('forgot-pin', [RecoveryController::class, 'store'])->name('recover.store');
 });
 
 Route::middleware('auth')->group(function (): void {
     Route::get('/', DashboardController::class)->name('dashboard');
-    Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
+    Route::post('lock', [LoginController::class, 'destroy'])->name('logout');
 
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::put('profile/password', [ProfileController::class, 'password'])->name('profile.password');
+    Route::put('profile/pin', [ProfileController::class, 'pin'])->name('profile.pin');
     Route::post('profile/recovery-code', [ProfileController::class, 'recoveryCode'])->name('profile.recovery');
 
     // Before the resource, or "search" is read as a customer id.
@@ -37,18 +48,16 @@ Route::middleware('auth')->group(function (): void {
     Route::resource('customers', CustomerController::class);
 
     // Before the resource, or "export" is read as an invoice id.
-    Route::get('invoices/export', [InvoiceController::class, 'export'])->name('invoices.export');
+    Route::post('invoices/export', [InvoiceController::class, 'export'])->name('invoices.export');
     Route::resource('invoices', InvoiceController::class);
     Route::post('invoices/{invoice}/duplicate', [InvoiceController::class, 'duplicate'])->name('invoices.duplicate');
     Route::put('invoices/{invoice}/status', [InvoiceController::class, 'status'])->name('invoices.status');
     Route::get('invoices/{invoice}/preview', [InvoiceController::class, 'preview'])->name('invoices.preview');
-    Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
+    // Writes the PDF into the app's storage and returns its path, for the native share/save calls.
+    Route::post('invoices/{invoice}/pdf-file', [InvoiceController::class, 'pdfFile'])->name('invoices.pdf-file');
     Route::post('invoices/{invoice}/shared', [InvoiceController::class, 'shared'])->name('invoices.shared');
     Route::post('invoices/{invoice}/payments', [PaymentController::class, 'store'])->name('invoices.payments.store');
     Route::delete('invoices/{invoice}/payments/{payment}', [PaymentController::class, 'destroy'])->name('invoices.payments.destroy');
-    Route::post('invoices/{invoice}/reset-link', [InvoiceController::class, 'resetLink'])->name('invoices.reset-link');
-
-    Route::post('system/update', [SystemController::class, 'update'])->name('system.update');
 
     Route::get('company', [CompanyProfileController::class, 'edit'])->name('company.edit');
     Route::put('company', [CompanyProfileController::class, 'update'])->name('company.update');
@@ -56,14 +65,14 @@ Route::middleware('auth')->group(function (): void {
     Route::get('settings', [InvoiceSettingsController::class, 'edit'])->name('settings.edit');
     Route::put('settings', [InvoiceSettingsController::class, 'update'])->name('settings.update');
     Route::put('settings/profile', [InvoiceSettingsController::class, 'profile'])->name('settings.profile');
-});
 
-/*
-| The customer's link. No login — the 40-character token is the permission. Throttled so the
-| token space cannot be walked, and PDFs (the expensive part) more tightly than pages.
-*/
-Route::middleware('throttle:60,1')->prefix('i')->name('public.')->group(function (): void {
-    Route::get('{token}', [PublicInvoiceController::class, 'show'])->name('invoice');
-    Route::get('{token}/document', [PublicInvoiceController::class, 'document'])->name('document');
-    Route::get('{token}/pdf', [PublicInvoiceController::class, 'pdf'])->middleware('throttle:20,1')->name('pdf');
+    Route::get('backup', [BackupController::class, 'index'])->name('backup.index');
+    Route::post('backup', [BackupController::class, 'create'])->name('backup.create');
+    Route::post('backup/saved', [BackupController::class, 'saved'])->name('backup.saved');
+    Route::post('backup/restore', [BackupController::class, 'restore'])->name('backup.restore');
+
+    // A file the system picker copied into the app's cache, streamed back so the page can read it
+    // (a photo becomes a PNG in the page before upload — the phone's PHP cannot open JPEG).
+    Route::get('device-file', DeviceFileController::class)->name('device-file');
+    Route::get('media/{file}', MediaController::class)->name('media');
 });

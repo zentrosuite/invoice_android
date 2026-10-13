@@ -28,13 +28,6 @@
                     </a>
                 @endunless
 
-                <div class="ms-1 header-item d-none d-sm-flex">
-                    <button type="button" class="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle"
-                            data-toggle="fullscreen" title="Toggle fullscreen">
-                        <i class="bx bx-fullscreen fs-22"></i>
-                    </button>
-                </div>
-
                 {{-- Shown at every width: hiding it below 576px makes dark mode unreachable on a phone. --}}
                 <div class="ms-1 header-item d-flex">
                     <button type="button" class="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle light-dark-mode"
@@ -48,26 +41,26 @@
                             aria-haspopup="true" aria-expanded="false">
                         <span class="d-flex align-items-center">
                             <span class="avatar-xs rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center fw-semibold">
-                                {{ auth()->user()->initials() }}
+                                {{ (new \App\Models\User(['name' => app(\App\Settings\CompanySettings::class)->name]))->initials() }}
                             </span>
                             <span class="text-start ms-xl-2">
-                                <span class="d-none d-xl-inline-block ms-1 fw-medium user-name-text">{{ auth()->user()->name }}</span>
+                                <span class="d-none d-xl-inline-block ms-1 fw-medium user-name-text">{{ Str::limit(app(\App\Settings\CompanySettings::class)->name, 24) }}</span>
                             </span>
                         </span>
                     </button>
 
                     <div class="dropdown-menu dropdown-menu-end">
-                        <h6 class="dropdown-header">Welcome {{ Str::before(auth()->user()->name, ' ') }}!</h6>
+                        <h6 class="dropdown-header">{{ app(\App\Settings\CompanySettings::class)->name }}</h6>
                         <a class="dropdown-item" href="{{ route('profile.edit') }}">
-                            <i class="mdi mdi-account-circle text-muted fs-16 align-middle me-1"></i>
-                            <span class="align-middle">My profile</span>
+                            <i class="mdi mdi-shield-lock-outline text-muted fs-16 align-middle me-1"></i>
+                            <span class="align-middle">Security</span>
                         </a>
                         <div class="dropdown-divider"></div>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="dropdown-item">
-                                <i class="mdi mdi-logout text-muted fs-16 align-middle me-1"></i>
-                                <span class="align-middle">Sign out</span>
+                                <i class="mdi mdi-lock-outline text-muted fs-16 align-middle me-1"></i>
+                                <span class="align-middle">Lock</span>
                             </button>
                         </form>
                     </div>

@@ -18,10 +18,16 @@
                         <i class="ri-search-line position-absolute top-50 translate-middle-y ms-3 text-muted"></i>
                     </div>
                 </form>
-                <a href="{{ route('invoices.export', array_filter(['status' => $status?->value, 'q' => $search])) }}" class="btn btn-light"
-                   title="Download this list as a spreadsheet (CSV)">
-                    <i class="ri-file-excel-2-line"></i><span class="d-none d-sm-inline ms-1">Export</span>
-                </a>
+                {{-- The spreadsheet is written in the app, then offered to Android's "Save as". --}}
+                <button type="button" class="btn btn-light" title="Save this list as a spreadsheet (CSV)"
+                        x-data="{ busy: false }" :disabled="busy"
+                        @click="busy = true; ZentroNative.post(@js(route('invoices.export')), @js(array_filter(['status' => $status?->value, 'q' => $search])))
+                            .then((f) => ZentroNative.saveFile(f.path, f.name, f.mime))
+                            .catch((e) => alert(e.message))
+                            .finally(() => busy = false)">
+                    <span x-show="busy" x-cloak class="spinner-border spinner-border-sm"></span>
+                    <i class="ri-file-excel-2-line" x-show="!busy"></i><span class="d-none d-sm-inline ms-1">Export</span>
+                </button>
                 <a href="{{ route('invoices.create') }}" class="btn btn-primary">
                     <i class="ri-add-line me-1"></i>New invoice
                 </a>

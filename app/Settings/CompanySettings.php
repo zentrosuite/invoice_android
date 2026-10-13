@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Settings;
 
+use App\Support\Uploads;
 use Spatie\LaravelSettings\Settings;
 
 /**
@@ -60,7 +61,7 @@ class CompanySettings extends Settings
 
     public function logoUrl(): ?string
     {
-        return $this->logoFile() === null ? null : asset((string) $this->logoPath);
+        return $this->logoFile() === null ? null : Uploads::url((string) $this->logoPath);
     }
 
     /**
@@ -73,7 +74,7 @@ class CompanySettings extends Settings
 
     public function signatureUrl(): ?string
     {
-        return $this->signatureFile() === null ? null : asset((string) $this->signaturePath);
+        return $this->signatureFile() === null ? null : Uploads::url((string) $this->signaturePath);
     }
 
     public function signatureFile(): ?string
@@ -110,7 +111,7 @@ class CompanySettings extends Settings
             return null;
         }
 
-        $path = public_path($relative);
+        $path = Uploads::path($relative);
 
         return is_file($path) ? $path : null;
     }

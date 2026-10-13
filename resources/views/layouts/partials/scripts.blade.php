@@ -5,6 +5,7 @@
 
 @stack('scripts')
 
+<script src="{{ asset('assets/app/native.js') }}?v={{ config('app.asset_version') }}"></script>
 <script src="{{ asset('assets/app/ui.js') }}?v={{ config('app.asset_version') }}"></script>
 <script src="{{ asset('assets/app/app.js') }}?v={{ config('app.asset_version') }}"></script>
 {{-- Alpine last and deferred: components registered on `alpine:init` must exist before it starts. --}}

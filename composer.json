@@ -11,7 +11,11 @@
         "brick/math": "^0.14.8",
         "endroid/qr-code": "^6.0",
         "laravel/framework": "^12.0",
-        "spatie/laravel-settings": "^3.9"
+        "nativephp/mobile": "^4.6",
+        "nativephp/mobile-share": "^1.1",
+        "smronju/nativephp-document-picker": "*",
+        "spatie/laravel-settings": "^3.9",
+        "zentro/nativephp-whatsapp": "@dev"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -89,5 +93,13 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "repositories": [{
+        "name": "zentro-whatsapp",
+        "type": "path",
+        "url": "packages/zentro-whatsapp",
+        "options": {
+            "symlink": false
+        }
+    }]
 }

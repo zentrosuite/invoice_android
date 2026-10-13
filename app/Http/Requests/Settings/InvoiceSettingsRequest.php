@@ -36,8 +36,8 @@ final class InvoiceSettingsRequest extends FormRequest
             'default_terms' => ['nullable', 'string', 'max:3000'],
             'default_notes' => ['nullable', 'string', 'max:1000'],
             'footer_note' => ['nullable', 'string', 'max:120'],
-            // {link} is required: without it the customer gets a message with nothing to open.
-            'whatsapp_message' => ['required', 'string', 'max:1000', 'regex:/\{link\}/'],
+            'whatsapp_message' => ['required', 'string', 'max:1000'],
+            'whatsapp_app' => ['required', 'in:business,personal'],
         ];
     }
 
@@ -48,7 +48,6 @@ final class InvoiceSettingsRequest extends FormRequest
     {
         return [
             'number_prefix.regex' => 'Use letters, numbers and / - _ # only.',
-            'whatsapp_message.regex' => 'Keep {link} in the message — it is how the customer opens the invoice.',
         ];
     }
 }

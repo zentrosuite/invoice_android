@@ -12,6 +12,7 @@ use App\Models\Invoice;
 use App\Services\Invoices\InvoiceDocument;
 use App\Services\Invoices\InvoiceService;
 use App\Services\Invoices\InvoiceSharing;
+use App\Support\DeviceFiles;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +20,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class InvoiceController extends Controller
 {
@@ -55,37 +55,39 @@ final class InvoiceController extends Controller
     /**
      * The list as a spreadsheet, honouring the current filter and search.
      */
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request): JsonResponse
     {
-        $status = InvoiceStatus::tryFrom((string) $request->query('status', ''));
-        $query = $this->filtered($status, trim((string) $request->query('q', '')))->orderBy('invoice_date')->orderBy('id');
+        $status = InvoiceStatus::tryFrom((string) $request->input('status', ''));
+        $query = $this->filtered($status, trim((string) $request->input('q', '')))->orderBy('invoice_date')->orderBy('id');
         $name = 'invoices-' . ($status?->value ?? 'all') . '-' . now()->format('Y-m-d') . '.csv';
 
-        return response()->streamDownload(function () use ($query): void {
-            $out = fopen('php://output', 'w');
-            // UTF-8 BOM, so Excel shows ₹ and Tamil names correctly instead of mojibake.
-            fwrite($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['Number', 'Date', 'Due date', 'Customer', 'Business', 'Phone', 'Status', 'Total', 'Paid', 'Balance']);
+        // Written to the app's storage; the page then offers it to Android's "Save as" screen.
+        $path = DeviceFiles::path('exports', $name);
+        $out = fopen($path, 'w');
+        // UTF-8 BOM, so Excel shows ₹ and Tamil names correctly instead of mojibake.
+        fwrite($out, "\xEF\xBB\xBF");
+        fputcsv($out, ['Number', 'Date', 'Due date', 'Customer', 'Business', 'Phone', 'Status', 'Total', 'Paid', 'Balance']);
 
-            $query->chunk(500, function ($invoices) use ($out): void {
-                foreach ($invoices as $invoice) {
-                    fputcsv($out, [
-                        $invoice->number,
-                        $invoice->invoice_date->toDateString(),
-                        $invoice->due_date?->toDateString(),
-                        $invoice->customer_name,
-                        $invoice->customer_business,
-                        $invoice->customer_phone,
-                        $invoice->status->label(),
-                        $invoice->total,
-                        $invoice->amount_paid,
-                        $invoice->balance(),
-                    ]);
-                }
-            });
+        $query->chunk(500, function ($invoices) use ($out): void {
+            foreach ($invoices as $invoice) {
+                fputcsv($out, [
+                    $invoice->number,
+                    $invoice->invoice_date->toDateString(),
+                    $invoice->due_date?->toDateString(),
+                    $invoice->customer_name,
+                    $invoice->customer_business,
+                    $invoice->customer_phone,
+                    $invoice->status->label(),
+                    $invoice->total,
+                    $invoice->amount_paid,
+                    $invoice->balance(),
+                ]);
+            }
+        });
 
-            fclose($out);
-        }, $name, ['Content-Type' => 'text/csv; charset=UTF-8']);
+        fclose($out);
+
+        return response()->json(['path' => $path, 'name' => $name, 'mime' => 'text/csv']);
     }
 
     public function create(Request $request): View
@@ -107,14 +109,10 @@ final class InvoiceController extends Controller
 
     public function show(Invoice $invoice, InvoiceSharing $sharing): View
     {
-        // The link is made here, not on click: a WhatsApp link opened after a round trip to the
-        // server is blocked as a popup, so the button must be a plain link ready on the page.
         $invoice->load('payments');
 
         return view('invoices.show', [
             'invoice' => $invoice,
-            'shareUrl' => $sharing->publicUrl($invoice),
-            'whatsappUrl' => $sharing->whatsappUrl($invoice),
             'shareText' => $sharing->message($invoice),
         ]);
     }
@@ -129,13 +127,6 @@ final class InvoiceController extends Controller
         return response()->json(['status' => $invoice->status->value]);
     }
 
-    public function resetLink(Invoice $invoice, InvoiceSharing $sharing): RedirectResponse
-    {
-        $sharing->resetToken($invoice);
-
-        return back()->with('success', 'New link created. The old one no longer opens this invoice.');
-    }
-
     /**
      * The invoice in its design, as a standalone page — what the record page frames, and what
      * "open full size" shows. The same markup the PDF is made from.
@@ -147,13 +138,24 @@ final class InvoiceController extends Controller
             ->header('Cache-Control', 'no-store');
     }
 
-    public function pdf(Request $request, Invoice $invoice, InvoiceDocument $document): Response
+    /**
+     * Render the PDF into the app's storage and return where it is, for the native share,
+     * WhatsApp and "Save as" calls the page makes next. A phone app has no browser download.
+     */
+    public function pdfFile(Invoice $invoice, InvoiceDocument $document): JsonResponse
     {
-        $pdf = $document->pdf($invoice);
-        $filename = $document->filename($invoice);
+        $name = $document->filename($invoice);
+        $path = DeviceFiles::path('pdf', $name);
+        $started = microtime(true);
 
-        // ?inline=1 opens in the browser's viewer (for printing); otherwise it downloads.
-        return $request->boolean('inline') ? $pdf->stream($filename) : $pdf->download($filename);
+        file_put_contents($path, $document->pdf($invoice)->output());
+
+        return response()->json([
+            'path' => $path,
+            'name' => $name,
+            'mime' => 'application/pdf',
+            'ms' => (int) round((microtime(true) - $started) * 1000),
+        ]);
     }
 
     public function edit(Invoice $invoice): View

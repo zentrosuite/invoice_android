@@ -1,0 +1,25 @@
+{
+    "name": "zentro/nativephp-whatsapp",
+    "description": "Send a file straight into a WhatsApp chat with a given number (Zentro Invoice)",
+    "type": "nativephp-plugin",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2",
+        "nativephp/mobile": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Zentro\\WhatsApp\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Zentro\\WhatsApp\\WhatsAppServiceProvider"
+            ]
+        },
+        "nativephp": {
+            "manifest": "nativephp.json"
+        }
+    }
+}

@@ -15,12 +15,27 @@
 @section('content')
     <div class="d-flex flex-wrap align-items-center gap-2 mb-3 mt-1">
         <div class="flex-grow-1">
-            <h4 class="fs-16 mb-1">Hello, {{ Str::before(auth()->user()->name, ' ') }}</h4>
-            <p class="text-muted mb-0">{{ $company->name }} &middot; {{ now()->format('l, d M Y') }}</p>
+            <h4 class="fs-16 mb-1">{{ $company->name }}</h4>
+            <p class="text-muted mb-0">{{ now()->format('l, d M Y') }}</p>
         </div>
         <a href="{{ route('customers.create') }}" class="btn btn-light"><i class="ri-user-add-line me-1"></i>Customer</a>
         <a href="{{ route('invoices.create') }}" class="btn btn-primary"><i class="ri-add-line me-1"></i>New invoice</a>
     </div>
+
+    {{-- Your data lives only on this phone: a nudge when no copy has been kept for a week. --}}
+    @if ($backupOverdue)
+        <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2" role="alert">
+            <i class="ri-shield-check-line fs-18"></i>
+            <span class="me-auto">
+                @if ($lastBackup)
+                    Last backup {{ $lastBackup->diffForHumans() }}. Keep a fresh copy off this phone.
+                @else
+                    Your invoices are only on this phone. Save a backup to Google Drive or WhatsApp.
+                @endif
+            </span>
+            <a href="{{ route('backup.index') }}" class="btn btn-warning btn-sm">Back up now</a>
+        </div>
+    @endif
 
     {{-- ---- Figures ------------------------------------------------------------------------ --}}
     <div class="row g-3">

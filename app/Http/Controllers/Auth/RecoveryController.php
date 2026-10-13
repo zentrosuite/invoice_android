@@ -11,15 +11,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Forgotten password, without email.
- *
- * This installation sends no mail, so "email me a reset link" is not available. Instead the
- * installer showed a one-time recovery code; typing it here sets a new password and issues a
- * replacement code, because the old one has now been used.
+ * Forgotten PIN: the recovery code shown at setup sets a new PIN, and a replacement code is
+ * issued because the old one has now been used.
  */
 final class RecoveryController extends Controller
 {
@@ -33,12 +29,14 @@ final class RecoveryController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'email' => ['required', 'email'],
             'recovery_code' => ['required', 'string'],
-            'password' => ['required', 'confirmed', Password::min(8)],
+            'pin' => ['required', 'digits:4', 'confirmed'],
+        ], [
+            'pin.digits' => 'The PIN must be exactly 4 digits.',
+            'pin.confirmed' => 'The two PINs do not match.',
         ]);
 
-        $key = 'recover|' . $request->ip();
+        $key = 'pin-recover';
 
         if (RateLimiter::tooManyAttempts($key, self::MAX_ATTEMPTS)) {
             throw ValidationException::withMessages([
@@ -46,27 +44,26 @@ final class RecoveryController extends Controller
             ]);
         }
 
-        $user = User::query()->firstWhere('email', $data['email']);
+        $user = User::query()->first();
 
         if ($user === null || ! $user->recoveryCodeMatches($data['recovery_code'])) {
             RateLimiter::hit($key, 15 * 60);
 
-            throw ValidationException::withMessages([
-                'recovery_code' => 'That email and recovery code do not match.',
-            ]);
+            throw ValidationException::withMessages(['recovery_code' => 'That recovery code is not right.']);
         }
 
         RateLimiter::clear($key);
 
-        $user->password = $data['password'];
+        $user->password = $data['pin'];
         $newCode = $user->issueRecoveryCode();
         $user->save();
 
         Auth::login($user);
         $request->session()->regenerate();
+        $request->session()->put('last_activity', time());
 
         return redirect()->route('profile.edit')
-            ->with('success', 'Password changed. Your old recovery code no longer works — save the new one below.')
+            ->with('success', 'PIN changed. Your old recovery code no longer works — save the new one below.')
             ->with('recovery_code', $newCode);
     }
 }
