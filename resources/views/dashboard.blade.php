@@ -21,8 +21,9 @@
                     @php
                         $steps = [
                             ['done' => true, 'icon' => 'ri-checkbox-circle-fill', 'title' => 'Set up your account', 'text' => 'Done. You are signed in.'],
-                            ['done' => (bool) $company->addressLine1, 'icon' => 'ri-building-line', 'title' => 'Complete your company profile', 'text' => 'Logo, address and contact details for the invoice header.'],
-                            ['done' => (bool) $company->upiId, 'icon' => 'ri-qr-code-line', 'title' => 'Add your UPI ID', 'text' => 'Every unpaid invoice will carry a QR code your customer can scan to pay.'],
+                            ['done' => (bool) $company->addressLine1, 'icon' => 'ri-building-line', 'title' => 'Complete your company profile', 'text' => 'Logo, address and contact details for the invoice header.', 'route' => 'company.edit'],
+                            ['done' => (bool) $company->upiId, 'icon' => 'ri-qr-code-line', 'title' => 'Add your UPI ID', 'text' => 'Every unpaid invoice will carry a QR code your customer can scan to pay.', 'route' => 'company.edit'],
+                            ['done' => false, 'icon' => 'ri-settings-3-line', 'title' => 'Review invoice settings', 'text' => 'Columns, numbering, tax and your default terms.', 'route' => 'settings.edit'],
                             ['done' => false, 'icon' => 'ri-file-add-line', 'title' => 'Create your first invoice', 'text' => 'Add a customer, type your lines, save as draft or share on WhatsApp.'],
                         ];
                     @endphp
@@ -33,7 +34,11 @@
                                     <i class="{{ $s['done'] ? 'ri-check-line' : $s['icon'] }}"></i>
                                 </span>
                                 <span>
-                                    <span class="d-block fw-medium">{{ $s['title'] }}</span>
+                                    @if (! $s['done'] && isset($s['route']) && Route::has($s['route']))
+                                        <a href="{{ route($s['route']) }}" class="d-block fw-medium">{{ $s['title'] }}</a>
+                                    @else
+                                        <span class="d-block fw-medium">{{ $s['title'] }}</span>
+                                    @endif
                                     <span class="d-block text-muted fs-13">{{ $s['text'] }}</span>
                                 </span>
                             </li>

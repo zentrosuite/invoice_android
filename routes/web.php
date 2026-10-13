@@ -6,6 +6,8 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RecoveryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Settings\CompanyProfileController;
+use App\Http\Controllers\Settings\InvoiceSettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function (): void {
@@ -23,4 +25,11 @@ Route::middleware('auth')->group(function (): void {
     Route::put('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('profile/password', [ProfileController::class, 'password'])->name('profile.password');
     Route::post('profile/recovery-code', [ProfileController::class, 'recoveryCode'])->name('profile.recovery');
+
+    Route::get('company', [CompanyProfileController::class, 'edit'])->name('company.edit');
+    Route::put('company', [CompanyProfileController::class, 'update'])->name('company.update');
+
+    Route::get('settings', [InvoiceSettingsController::class, 'edit'])->name('settings.edit');
+    Route::put('settings', [InvoiceSettingsController::class, 'update'])->name('settings.update');
+    Route::put('settings/profile', [InvoiceSettingsController::class, 'profile'])->name('settings.profile');
 });

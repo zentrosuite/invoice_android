@@ -63,7 +63,7 @@ enum UsageProfile: string
                 'showQuantity' => true,
                 'quantityLabel' => 'Qty',
                 'rateLabel' => 'Rate',
-                'template' => 'classic',
+                'template' => 'receipt',
             ],
             self::Freelancer => [
                 'itemLabel' => 'Service description',

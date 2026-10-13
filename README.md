@@ -13,7 +13,7 @@ as-is to shared hosting such as InfinityFree.
 | # | Phase | Status |
 |---|---|---|
 | 1 | Foundation: setup wizard with usage profile, login, recovery code, app shell | done |
-| 2 | Company profile and invoice settings (logo, address, UPI ID, numbering, tax %) | |
+| 2 | Company profile and invoice settings (logo, address, UPI ID, numbering, tax %) | done |
 | 3 | Customers | |
 | 4 | Invoice builder: free-form lines, drafts, statuses, editing | |
 | 5 | Invoice designs, PDF download, UPI QR on unpaid invoices | |
@@ -51,5 +51,9 @@ Tests use a separate MySQL database, `zentro_invoices_test` (see `phpunit.xml`):
 php artisan test
 vendor/bin/pint
 ```
+
+Uploaded logos are re-encoded to PNG and stored in `public/uploads/company` — not
+`storage/app/public`, because shared hosting cannot create the `storage:link` symlink. On a local
+Apache install that folder must be writable by the web server user.
 
 Our own CSS/JS URLs carry `?v=` from `config('app.asset_version')`. Bump it on a release.

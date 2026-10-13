@@ -52,6 +52,25 @@ class CompanySettings extends Settings
         return 'company';
     }
 
+    public function logoUrl(): ?string
+    {
+        return $this->logoFile() === null ? null : asset($this->logoPath);
+    }
+
+    /**
+     * Absolute path on disk, for the PDF renderer. Null when unset or the file has gone.
+     */
+    public function logoFile(): ?string
+    {
+        if ($this->logoPath === null) {
+            return null;
+        }
+
+        $path = public_path($this->logoPath);
+
+        return is_file($path) ? $path : null;
+    }
+
     public function isConfigured(): bool
     {
         return trim($this->name) !== '';

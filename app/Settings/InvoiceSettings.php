@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Settings;
 
+use App\Enums\InvoiceTemplate;
 use App\Enums\UsageProfile;
 use Spatie\LaravelSettings\Settings;
 
@@ -40,9 +41,39 @@ class InvoiceSettings extends Settings
 
     public string $currencySymbol;
 
+    /** Digits after the prefix: 4 → INV-0001. */
+    public int $numberPadding;
+
+    /** Days from the invoice date to the due date; null means due on receipt. */
+    public ?int $dueDays;
+
+    /** Free text printed as the payment terms, e.g. "On completion". */
+    public ?string $paymentTerms;
+
+    /** One condition per line. */
+    public ?string $defaultTerms;
+
+    public ?string $defaultNotes;
+
+    /** The closing line, e.g. "Thank you for your business." */
+    public ?string $footerNote;
+
     public static function group(): string
     {
         return 'invoice';
+    }
+
+    /**
+     * What the next invoice will be numbered, without using the number up.
+     */
+    public function previewNumber(): string
+    {
+        return $this->numberPrefix . str_pad((string) $this->nextNumber, $this->numberPadding, '0', STR_PAD_LEFT);
+    }
+
+    public function templateEnum(): InvoiceTemplate
+    {
+        return InvoiceTemplate::tryFrom($this->template) ?? InvoiceTemplate::Classic;
     }
 
     public function profile(): UsageProfile

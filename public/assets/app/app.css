@@ -108,6 +108,98 @@
 .zi-hero-eyebrow { color: #a9b1f5; letter-spacing: .08em; }
 .zi-hero-text { color: #c8cdf0; }
 
+
+/* ---- Forms -------------------------------------------------------------------------------- */
+
+/* Save bar. Sticks to the bottom on a phone so a long settings form never needs a scroll back
+   down to find the button. */
+.zi-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .5rem;
+    margin-bottom: 1.5rem;
+}
+@media (max-width: 767.98px) {
+    .zi-form-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 5;
+        margin: 0 -.75rem 1rem;
+        padding: .75rem;
+        background: var(--vz-body-bg);
+        border-top: 1px solid var(--vz-border-color);
+    }
+    .zi-form-actions .btn { flex: 1; }
+}
+
+/* Selectable tiles: a .btn-check radio followed by its label. */
+.zi-choice {
+    display: block;
+    cursor: pointer;
+    padding: .8rem 1rem;
+    border: 1.5px solid var(--vz-border-color);
+    border-radius: 10px;
+    background: var(--vz-secondary-bg);
+    transition: border-color .15s, box-shadow .15s;
+}
+.zi-choice:hover { border-color: var(--vz-primary-border-subtle); }
+.btn-check:checked + .zi-choice {
+    border-color: var(--vz-primary);
+    box-shadow: 0 0 0 3px rgba(var(--vz-primary-rgb), .15);
+}
+.btn-check:focus-visible + .zi-choice { outline: 2px solid var(--vz-primary); outline-offset: 2px; }
+.zi-choice-icon { font-size: 1.3rem; color: var(--vz-primary); display: block; margin-bottom: .25rem; }
+
+.zi-logo-slot {
+    width: 120px;
+    height: 64px;
+    padding: 6px;
+    border: 1px dashed var(--vz-border-color);
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    /* Checkerboard, so a transparent PNG is visibly transparent. */
+    background: repeating-conic-gradient(rgba(127, 127, 127, .12) 0 25%, transparent 0 50%) 0 0 / 12px 12px;
+}
+.zi-logo-slot img { display: block; max-width: 106px; max-height: 50px; width: auto; height: auto; object-fit: contain; }
+
+.zi-test-qr {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    padding: .75rem;
+    border-radius: 10px;
+    background: var(--vz-primary-bg-subtle);
+}
+/* The QR stays black on white in dark mode, or scanners struggle. */
+.zi-test-qr img { background: #fff; border-radius: 6px; flex: none; }
+
+@media (min-width: 1200px) {
+    .zi-sticky { position: sticky; top: calc(70px + 1.5rem); }
+}
+
+/* Invoice header preview: a paper card, light even in dark mode, because the invoice is. */
+.zi-header-preview {
+    background: #fff;
+    color: #3d4260;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px -12px rgba(17, 22, 51, .25);
+    border: 1px solid #e4e6ee;
+    font-size: 12px;
+}
+.zi-hp-bar { height: 5px; background: linear-gradient(90deg, #111633 60%, #3a44c2); }
+.zi-hp-body { display: flex; justify-content: space-between; gap: 1rem; padding: 16px 18px 10px; }
+.zi-hp-brand { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.zi-hp-brand img { height: 44px; max-width: 110px; object-fit: contain; flex: none; }
+.zi-hp-name { font-size: 15px; font-weight: 700; color: #111633; overflow-wrap: anywhere; }
+.zi-hp-line { color: #7a7f98; font-size: 11px; overflow-wrap: anywhere; }
+.zi-hp-title { font-size: 18px; font-weight: 800; letter-spacing: 3px; color: #111633; flex: none; }
+.zi-hp-address { padding: 0 18px 12px; color: #7a7f98; font-size: 11px; }
+.zi-hp-foot { padding: 8px 18px; border-top: 1px solid #e4e6ee; color: #7a7f98; font-size: 11px; text-align: right; }
+
+.zi-col-preview th { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--vz-secondary-color); }
+
 /* ---- Phone width ------------------------------------------------------------------------
  | Tap targets of at least 44px for primary actions, and page padding that does not eat a
  | third of a 360px screen. */
