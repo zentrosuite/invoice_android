@@ -8,6 +8,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicInvoiceController;
 use App\Http\Controllers\Settings\CompanyProfileController;
 use App\Http\Controllers\Settings\InvoiceSettingsController;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +39,8 @@ Route::middleware('auth')->group(function (): void {
     Route::put('invoices/{invoice}/status', [InvoiceController::class, 'status'])->name('invoices.status');
     Route::get('invoices/{invoice}/preview', [InvoiceController::class, 'preview'])->name('invoices.preview');
     Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
+    Route::post('invoices/{invoice}/shared', [InvoiceController::class, 'shared'])->name('invoices.shared');
+    Route::post('invoices/{invoice}/reset-link', [InvoiceController::class, 'resetLink'])->name('invoices.reset-link');
 
     Route::get('company', [CompanyProfileController::class, 'edit'])->name('company.edit');
     Route::put('company', [CompanyProfileController::class, 'update'])->name('company.update');
@@ -45,4 +48,14 @@ Route::middleware('auth')->group(function (): void {
     Route::get('settings', [InvoiceSettingsController::class, 'edit'])->name('settings.edit');
     Route::put('settings', [InvoiceSettingsController::class, 'update'])->name('settings.update');
     Route::put('settings/profile', [InvoiceSettingsController::class, 'profile'])->name('settings.profile');
+});
+
+/*
+| The customer's link. No login — the 40-character token is the permission. Throttled so the
+| token space cannot be walked, and PDFs (the expensive part) more tightly than pages.
+*/
+Route::middleware('throttle:60,1')->prefix('i')->name('public.')->group(function (): void {
+    Route::get('{token}', [PublicInvoiceController::class, 'show'])->name('invoice');
+    Route::get('{token}/document', [PublicInvoiceController::class, 'document'])->name('document');
+    Route::get('{token}/pdf', [PublicInvoiceController::class, 'pdf'])->middleware('throttle:20,1')->name('pdf');
 });

@@ -55,8 +55,14 @@ class InvoiceSettings extends Settings
 
     public ?string $defaultNotes;
 
-    /** The closing line, e.g. "Thank you for your business." */
+    /** The closing line, e.g. "We appreciate your business." */
     public ?string $footerNote;
+
+    /**
+     * The message "Send on WhatsApp" pre-fills. Placeholders: {customer} {number} {company}
+     * {amount} {due} {link}. See App\Services\Invoices\InvoiceSharing.
+     */
+    public string $whatsappMessage;
 
     public static function group(): string
     {

@@ -17,7 +17,7 @@ as-is to shared hosting such as InfinityFree.
 | 3 | Customers | done |
 | 4 | Invoice builder: itemised or package pricing, drafts, statuses, editing | done |
 | 5 | Invoice designs (Package, Modern, Classic, Receipt, Minimal), PDF download, UPI QR on unpaid invoices | done |
-| 6 | WhatsApp sharing and public invoice link | |
+| 6 | WhatsApp sharing and public invoice link | done |
 | 7 | Dashboard, payments, mobile polish, InfinityFree deploy package | |
 
 ## Usage profiles

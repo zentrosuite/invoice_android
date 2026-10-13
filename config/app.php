@@ -71,7 +71,7 @@ return [
     | Appended to our own CSS/JS URLs. Bump it on a release so browsers drop the cached copy —
     | there is no bundler here to fingerprint file names.
     */
-    'asset_version' => '10',
+    'asset_version' => '11',
 
     'timezone' => env('APP_TIMEZONE', 'Asia/Kolkata'),
 

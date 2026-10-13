@@ -167,6 +167,30 @@
                         <p class="text-muted fs-12 mt-3 mb-0">These pre-fill every new invoice; you can still edit them per invoice.</p>
                     </div>
                 </div>
+
+                <div class="card" x-data="{ msg: @js(old('whatsapp_message', $settings->whatsappMessage)) }">
+                    <div class="card-header"><h5 class="card-title mb-0"><i class="ri-whatsapp-line text-success me-1"></i>WhatsApp message</h5></div>
+                    <div class="card-body">
+                        <label class="form-label" for="whatsapp_message">Message sent with each invoice</label>
+                        <textarea id="whatsapp_message" name="whatsapp_message" rows="7" maxlength="1000" x-model="msg"
+                                  class="form-control @error('whatsapp_message') is-invalid @enderror">{{ old('whatsapp_message', $settings->whatsappMessage) }}</textarea>
+                        @error('whatsapp_message')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <div class="d-flex flex-wrap gap-1 mt-2">
+                            @foreach (['{customer}' => 'Customer name', '{number}' => 'Invoice number', '{amount}' => 'Total', '{due}' => 'Due date or terms', '{company}' => 'Your business', '{link}' => 'Invoice link'] as $tag => $what)
+                                <button type="button" class="btn btn-sm btn-light" title="{{ $what }}"
+                                        @click="msg = msg + (msg.endsWith(' ') || msg.endsWith('\n') || msg === '' ? '' : ' ') + '{{ $tag }}'">{{ $tag }}</button>
+                            @endforeach
+                        </div>
+                        <div class="text-uppercase fs-11 fw-semibold text-muted mt-3 mb-1">Preview</div>
+                        <div class="zi-wa-bubble" x-text="msg
+                            .replaceAll('{customer}', 'Rasi')
+                            .replaceAll('{number}', @js($settings->previewNumber()))
+                            .replaceAll('{amount}', @js($settings->currencySymbol) + '3,599')
+                            .replaceAll('{due}', 'due on receipt')
+                            .replaceAll('{company}', @js(app(\App\Settings\CompanySettings::class)->name))
+                            .replaceAll('{link}', @js(url('/i/')) + '/AbC…xYz')"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="col-xl-5">

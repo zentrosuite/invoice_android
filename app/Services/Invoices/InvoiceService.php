@@ -115,7 +115,8 @@ final readonly class InvoiceService
     public function duplicate(Invoice $source): Invoice
     {
         return DB::transaction(function () use ($source): Invoice {
-            $copy = $source->replicate(['number', 'status', 'sent_at', 'paid_at']);
+            // Never the share link: a copy is a different invoice with its own secret.
+            $copy = $source->replicate(['number', 'status', 'sent_at', 'paid_at', 'share_token', 'shared_at', 'viewed_at']);
             $copy->number = $this->numberer->take();
             $copy->status = InvoiceStatus::Draft;
             $copy->invoice_date = now()->startOfDay();

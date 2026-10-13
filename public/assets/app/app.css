@@ -313,6 +313,35 @@ tr[data-href] { cursor: pointer; }
 .zi-status-pills::-webkit-scrollbar { display: none; }
 .zi-status-pills .btn { flex: none; white-space: nowrap; min-height: 34px; }
 
+/* ---- Sharing ------------------------------------------------------------------------------ */
+.zi-share-link {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .45rem .75rem;
+    border-radius: 6px;
+    background: var(--vz-light-bg-subtle, var(--vz-tertiary-bg));
+    min-width: 0;
+}
+.zi-share-link > span { min-width: 0; flex: 1 1 auto; }
+@media (max-width: 575.98px) {
+    .zi-share .btn { flex: 1 1 auto; }
+}
+
+/* A WhatsApp-like bubble for the message preview. */
+.zi-wa-bubble {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-width: 420px;
+    padding: .6rem .8rem;
+    border-radius: 8px 8px 8px 2px;
+    background: #dcf8c6;
+    color: #111b21;
+    font-size: .85rem;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, .08);
+}
+[data-bs-theme=dark] .zi-wa-bubble { background: #005c4b; color: #e9edef; }
+
 /* ---- Invoice document preview ------------------------------------------------------------ */
 .zi-doc-toolbar { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-bottom: 1rem; }
 .zi-doc-frame { border-radius: 10px; overflow: hidden; background: #d9dbe3; margin-bottom: 1.5rem; }

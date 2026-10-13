@@ -50,6 +50,9 @@ use Illuminate\Support\Carbon;
  * @property string|null $footer_note
  * @property Carbon|null $sent_at
  * @property Carbon|null $paid_at
+ * @property string|null $share_token
+ * @property Carbon|null $shared_at
+ * @property Carbon|null $viewed_at
  */
 class Invoice extends Model
 {
@@ -62,6 +65,13 @@ class Invoice extends Model
      * @var list<string>
      */
     protected $guarded = ['id'];
+
+    /**
+     * Never in JSON: the token is the whole of the link's protection.
+     *
+     * @var list<string>
+     */
+    protected $hidden = ['share_token'];
 
     /**
      * @return BelongsTo<Customer, $this>
@@ -177,6 +187,8 @@ class Invoice extends Model
             'callout' => 'array',
             'sent_at' => 'datetime',
             'paid_at' => 'datetime',
+            'shared_at' => 'datetime',
+            'viewed_at' => 'datetime',
         ];
     }
 }

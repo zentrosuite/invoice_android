@@ -11,7 +11,9 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Services\Invoices\InvoiceDocument;
 use App\Services\Invoices\InvoiceService;
+use App\Services\Invoices\InvoiceSharing;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -64,9 +66,33 @@ final class InvoiceController extends Controller
                 : "Invoice {$invoice->number} saved.");
     }
 
-    public function show(Invoice $invoice): View
+    public function show(Invoice $invoice, InvoiceSharing $sharing): View
     {
-        return view('invoices.show', ['invoice' => $invoice]);
+        // The link is made here, not on click: a WhatsApp link opened after a round trip to the
+        // server is blocked as a popup, so the button must be a plain link ready on the page.
+        return view('invoices.show', [
+            'invoice' => $invoice,
+            'shareUrl' => $sharing->publicUrl($invoice),
+            'whatsappUrl' => $sharing->whatsappUrl($invoice),
+            'shareText' => $sharing->message($invoice),
+        ]);
+    }
+
+    /**
+     * Called (fire-and-forget) when a share button is pressed. A draft becomes unpaid.
+     */
+    public function shared(Invoice $invoice, InvoiceSharing $sharing): JsonResponse
+    {
+        $sharing->markShared($invoice);
+
+        return response()->json(['status' => $invoice->status->value]);
+    }
+
+    public function resetLink(Invoice $invoice, InvoiceSharing $sharing): RedirectResponse
+    {
+        $sharing->resetToken($invoice);
+
+        return back()->with('success', 'New link created. The old one no longer opens this invoice.');
     }
 
     /**
