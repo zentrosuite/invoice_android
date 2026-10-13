@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RecoveryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Settings\CompanyProfileController;
 use App\Http\Controllers\Settings\InvoiceSettingsController;
@@ -29,7 +30,12 @@ Route::middleware('auth')->group(function (): void {
 
     // Before the resource, or "search" is read as a customer id.
     Route::get('customers/search', [CustomerController::class, 'search'])->name('customers.search');
+    Route::post('customers/quick', [CustomerController::class, 'quickStore'])->name('customers.quick');
     Route::resource('customers', CustomerController::class);
+
+    Route::resource('invoices', InvoiceController::class);
+    Route::post('invoices/{invoice}/duplicate', [InvoiceController::class, 'duplicate'])->name('invoices.duplicate');
+    Route::put('invoices/{invoice}/status', [InvoiceController::class, 'status'])->name('invoices.status');
 
     Route::get('company', [CompanyProfileController::class, 'edit'])->name('company.edit');
     Route::put('company', [CompanyProfileController::class, 'update'])->name('company.update');

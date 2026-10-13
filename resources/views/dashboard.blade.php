@@ -24,7 +24,7 @@
                             ['done' => (bool) $company->addressLine1, 'icon' => 'ri-building-line', 'title' => 'Complete your company profile', 'text' => 'Logo, address and contact details for the invoice header.', 'route' => 'company.edit'],
                             ['done' => (bool) $company->upiId, 'icon' => 'ri-qr-code-line', 'title' => 'Add your UPI ID', 'text' => 'Every unpaid invoice will carry a QR code your customer can scan to pay.', 'route' => 'company.edit'],
                             ['done' => false, 'icon' => 'ri-settings-3-line', 'title' => 'Review invoice settings', 'text' => 'Columns, numbering, tax and your default terms.', 'route' => 'settings.edit'],
-                            ['done' => false, 'icon' => 'ri-file-add-line', 'title' => 'Create your first invoice', 'text' => 'Add a customer, type your lines, save as draft or share on WhatsApp.'],
+                            ['done' => \App\Models\Invoice::query()->exists(), 'icon' => 'ri-file-add-line', 'title' => 'Create your first invoice', 'text' => 'Add a customer, type your lines, save as draft or share on WhatsApp.', 'route' => 'invoices.create'],
                         ];
                     @endphp
                     <ul class="list-unstyled mb-0 zi-checklist">

@@ -22,8 +22,11 @@
             </div>
 
             <div class="d-flex align-items-center">
-                {{-- Phase 4 adds a "New invoice" shortcut here. --}}
-                @yield('topbar-actions')
+                @unless (request()->routeIs('invoices.create', 'invoices.edit'))
+                    <a href="{{ route('invoices.create') }}" class="btn btn-primary btn-sm me-1 d-flex align-items-center">
+                        <i class="ri-add-line"></i><span class="d-none d-sm-inline ms-1">New invoice</span>
+                    </a>
+                @endunless
 
                 <div class="ms-1 header-item d-none d-sm-flex">
                     <button type="button" class="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle"

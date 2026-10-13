@@ -15,7 +15,7 @@ as-is to shared hosting such as InfinityFree.
 | 1 | Foundation: setup wizard with usage profile, login, recovery code, app shell | done |
 | 2 | Company profile and invoice settings (logo, address, UPI ID, numbering, tax %) | done |
 | 3 | Customers | done |
-| 4 | Invoice builder: itemised or package pricing, drafts, statuses, editing | |
+| 4 | Invoice builder: itemised or package pricing, drafts, statuses, editing | done |
 | 5 | Invoice designs (Package, Modern, Classic, Receipt, Minimal), PDF download, UPI QR on unpaid invoices | |
 | 6 | WhatsApp sharing and public invoice link | |
 | 7 | Dashboard, payments, mobile polish, InfinityFree deploy package | |

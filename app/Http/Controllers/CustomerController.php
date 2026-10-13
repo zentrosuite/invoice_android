@@ -42,7 +42,10 @@ final class CustomerController extends Controller
 
     public function show(Customer $customer): View
     {
-        return view('customers.show', ['customer' => $customer]);
+        return view('customers.show', [
+            'customer' => $customer,
+            'invoices' => $customer->invoices()->orderByDesc('invoice_date')->orderByDesc('id')->limit(50)->get(),
+        ]);
     }
 
     public function edit(Customer $customer): View
@@ -68,6 +71,16 @@ final class CustomerController extends Controller
     }
 
     /**
+     * Add a customer from inside the invoice builder without leaving it.
+     */
+    public function quickStore(CustomerRequest $request): JsonResponse
+    {
+        $customer = Customer::create($request->attributesForModel());
+
+        return response()->json($this->pickerRow($customer), 201);
+    }
+
+    /**
      * Picker search for the invoice builder.
      */
     public function search(Request $request): JsonResponse
@@ -78,7 +91,15 @@ final class CustomerController extends Controller
             ->limit(10)
             ->get();
 
-        return response()->json($customers->map(fn (Customer $c): array => [
+        return response()->json($customers->map(fn (Customer $c): array => $this->pickerRow($c)));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function pickerRow(Customer $c): array
+    {
+        return [
             'id' => $c->id,
             'name' => $c->name,
             'business_name' => $c->business_name,
@@ -86,6 +107,6 @@ final class CustomerController extends Controller
             'email' => $c->email,
             'address' => implode(', ', $c->addressLines()),
             'label' => $c->label(),
-        ]));
+        ];
     }
 }

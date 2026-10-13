@@ -1,0 +1,51 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Enums;
+
+/**
+ * Where an invoice is in its life.
+ *
+ *   draft ──► sent ──► paid
+ *     ▲         │  ◄──── (mark unpaid)
+ *     └── cancelled ◄──┘
+ *
+ * Every status stays editable: the owner is one person correcting their own bill, not an
+ * auditor's ledger. A UPI QR is printed only while there is money to collect (draft or sent).
+ */
+enum InvoiceStatus: string
+{
+    case Draft = 'draft';
+    case Sent = 'sent';
+    case Paid = 'paid';
+    case Cancelled = 'cancelled';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Draft => 'Draft',
+            self::Sent => 'Unpaid',
+            self::Paid => 'Paid',
+            self::Cancelled => 'Cancelled',
+        };
+    }
+
+    /**
+     * Velzon badge classes.
+     */
+    public function badge(): string
+    {
+        return match ($this) {
+            self::Draft => 'bg-dark-subtle text-body',
+            self::Sent => 'bg-warning-subtle text-warning',
+            self::Paid => 'bg-success-subtle text-success',
+            self::Cancelled => 'bg-danger-subtle text-danger',
+        };
+    }
+
+    public function isPayable(): bool
+    {
+        return $this === self::Draft || $this === self::Sent;
+    }
+}

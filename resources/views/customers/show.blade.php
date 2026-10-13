@@ -92,10 +92,31 @@
                         </a>
                     @endif
                 </div>
-                <div class="card-body text-center text-muted py-5">
-                    <i class="ri-file-list-3-line fs-1"></i>
-                    <p class="mb-0 mt-2">No invoices for {{ $customer->name }} yet.</p>
-                </div>
+                @if ($invoices->isEmpty())
+                    <div class="card-body text-center text-muted py-5">
+                        <i class="ri-file-list-3-line fs-1"></i>
+                        <p class="mb-0 mt-2">No invoices for {{ $customer->name }} yet.</p>
+                    </div>
+                @else
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <tbody>
+                            @foreach ($invoices as $invoice)
+                                <tr data-href="{{ route('invoices.show', $invoice) }}">
+                                    <td>
+                                        <a href="{{ route('invoices.show', $invoice) }}" class="fw-semibold text-body">{{ $invoice->number }}</a>
+                                        <div class="text-muted fs-12">{{ $invoice->invoice_date->format('d M Y') }}</div>
+                                    </td>
+                                    <td class="text-end text-nowrap">
+                                        <div class="fw-medium">@money($invoice->total, $invoice->currency_symbol)</div>
+                                        <span class="badge {{ $invoice->status->badge() }}">{{ $invoice->status->label() }}</span>
+                                    </td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             </div>
         </div>
     </div>

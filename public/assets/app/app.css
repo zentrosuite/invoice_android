@@ -210,6 +210,134 @@ tr[data-href] { cursor: pointer; }
 .zi-dl dt { font-weight: 500; color: var(--vz-secondary-color); }
 .zi-dl dd { margin-bottom: .6rem; }
 
+/* ---- Invoice builder ---------------------------------------------------------------------
+ | Each line is a flex row on a desktop and a stacked card on a phone, where every field gets
+ | its own label (.zi-mobile-label) because the column headings are hidden there. */
+.zi-line-head,
+.zi-line {
+    display: flex;
+    gap: .5rem;
+    align-items: flex-start;
+}
+.zi-line-head {
+    padding: 0 0 .4rem;
+    border-bottom: 1px solid var(--vz-border-color);
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--vz-secondary-color);
+}
+.zi-line { padding: .6rem 0; border-bottom: 1px dashed var(--vz-border-color); }
+.zi-col-num { width: 26px; flex: none; padding-top: .55rem; color: var(--vz-secondary-color); font-weight: 600; font-size: .8rem; }
+.zi-col-desc { flex: 1 1 auto; min-width: 0; }
+.zi-col-qty { width: 70px; flex: none; }
+.zi-col-rate { width: 108px; flex: none; }
+.zi-col-amt { width: 104px; flex: none; }
+.zi-col-inc { width: 132px; flex: none; }
+.zi-col-act { width: 84px; flex: none; display: flex; justify-content: flex-end; padding-top: .2rem; }
+.zi-col-act .btn { width: 28px; height: 28px; }
+.zi-line-head .zi-col-qty, .zi-line-head .zi-col-rate, .zi-line-head .zi-col-amt { text-align: right; }
+.zi-line-head .zi-col-num { padding-top: 0; }
+.zi-amount { padding: .5rem 0; text-align: right; font-weight: 600; white-space: nowrap; }
+.zi-inclusion { padding-top: .5rem; padding-bottom: .5rem; }
+.zi-mobile-label { display: none; }
+
+@media (max-width: 767.98px) {
+    .zi-line { flex-wrap: wrap; position: relative; padding: .9rem 0; }
+    .zi-col-num { width: auto; padding-top: 0; order: 0; }
+    .zi-col-act { order: 1; margin-left: auto; width: auto; padding-top: 0; margin-top: -.35rem; }
+    .zi-col-desc { order: 2; flex: 1 1 100%; }
+    .zi-col-qty, .zi-col-rate, .zi-col-amt { order: 3; flex: 1 1 0; width: auto; }
+    .zi-col-inc { order: 3; flex: 1 1 100%; width: auto; }
+    .zi-mobile-label {
+        display: block;
+        font-size: .7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: var(--vz-secondary-color);
+        margin-bottom: .15rem;
+    }
+    .zi-amount { padding: .45rem 0; }
+}
+
+.zi-billto {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: .9rem 1rem;
+    border-radius: 8px;
+    background: var(--vz-primary-bg-subtle);
+}
+.zi-picker { max-height: 320px; overflow-y: auto; top: 100%; left: 0; margin-top: 2px; }
+
+.zi-segmented .btn { min-height: 0; }
+.zi-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: .8rem 1rem;
+    border-radius: 8px;
+    background: var(--zi-navy, #111633);
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.15rem;
+}
+[data-bs-theme=dark] .zi-total { background: #232a7a; }
+
+/* Builder save bar: the total sits beside the buttons on a phone. The wrapper is what sticks —
+   its parent is the whole form, so it stays on screen from the first line to the last. */
+.zi-sticky-bottom { position: sticky; bottom: 0; z-index: 6; }
+.zi-sticky-bottom .zi-form-actions { position: static; margin-bottom: 0; }
+.zi-builder-actions { align-items: center; }
+@media (max-width: 767.98px) {
+    .zi-builder-actions .btn { flex: 1 1 0; }
+    .zi-mobile-total { flex: 0 0 auto; margin-right: .25rem; line-height: 1.2; }
+}
+
+/* A light modal without Bootstrap's JS, owned by Alpine. */
+.zi-modal { position: fixed; inset: 0; z-index: 1060; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.zi-modal-backdrop { position: absolute; inset: 0; background: rgba(17, 22, 51, .5); }
+.zi-modal-card { position: relative; width: 100%; max-width: 560px; max-height: calc(100vh - 2rem); overflow-y: auto; }
+
+/* ---- Invoice list and record ------------------------------------------------------------ */
+.zi-status-pills {
+    display: flex;
+    gap: .4rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+.zi-status-pills::-webkit-scrollbar { display: none; }
+.zi-status-pills .btn { flex: none; white-space: nowrap; min-height: 34px; }
+
+.zi-meta { display: grid; grid-template-columns: auto auto; justify-content: start; column-gap: 1rem; row-gap: .15rem; font-size: .85rem; }
+.zi-meta dt { font-weight: 400; color: var(--vz-secondary-color); }
+.zi-meta dd { margin: 0; font-weight: 600; }
+@media (min-width: 576px) {
+    .zi-meta { justify-content: end; }
+    .zi-meta dt { text-align: right; }
+}
+.zi-subpoints { margin: .2rem 0 0; padding-left: 1.1rem; font-size: .8rem; color: var(--vz-secondary-color); }
+.zi-subpoints li { display: inline-block; margin-right: 1rem; }
+.zi-subpoints li::before { content: "•"; margin-right: .35rem; color: var(--vz-primary); }
+.zi-subpoints { list-style: none; padding-left: 0; }
+.zi-totals { display: grid; grid-template-columns: 1fr auto; row-gap: .3rem; }
+.zi-totals dt { font-weight: 400; color: var(--vz-secondary-color); }
+.zi-totals dd { margin: 0; text-align: right; font-weight: 500; }
+.zi-callout {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: .9rem 1.1rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--vz-primary);
+    background: var(--vz-primary-bg-subtle);
+}
+
 /* ---- Phone width ------------------------------------------------------------------------
  | Tap targets of at least 44px for primary actions, and page padding that does not eat a
  | third of a 360px screen. */
