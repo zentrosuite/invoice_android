@@ -48,7 +48,7 @@ shopt -u dotglob
 rmdir "$APP/public"
 
 # Nothing the server needs and nothing a visitor should be able to fetch.
-rm -rf "$APP"/tests "$APP"/tools "$APP"/phpunit.xml "$APP"/pint.json "$APP"/.editorconfig \
+rm -rf "$APP"/tests "$APP"/tools "$APP"/docs "$APP"/phpunit.xml "$APP"/pint.json "$APP"/.editorconfig \
        "$APP"/.gitattributes "$APP"/.gitignore "$APP"/README.md "$APP"/database/database.sqlite
 
 echo "→ Trimming fonts"
