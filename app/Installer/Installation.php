@@ -419,6 +419,8 @@ final class Installation
             'storage/framework/testing',
             'storage/framework/views',
             'storage/logs',
+            // dompdf caches font metrics here; without it the first PDF fails.
+            'storage/fonts',
             'bootstrap/cache',
         ];
 

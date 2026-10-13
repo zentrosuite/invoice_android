@@ -83,141 +83,57 @@
         </div>
     </div>
 
-    {{-- ---- The invoice ---------------------------------------------------------------------- --}}
-    <div class="card">
-        <div class="card-body p-3 p-md-4">
-            <div class="row g-3 mb-3">
-                <div class="col-sm-6">
-                    <div class="text-uppercase fs-11 fw-semibold text-primary mb-1">Bill to</div>
-                    @if ($invoice->customer_name || $invoice->customer_business)
-                        <div class="fw-semibold fs-15">{{ $invoice->customer_name }}</div>
-                        @if ($invoice->customer_business)<div>{{ $invoice->customer_business }}</div>@endif
-                        @if ($invoice->customer_phone)<div class="text-muted fs-13">{{ $invoice->customer_phone }}</div>@endif
-                        @if ($invoice->customer_email)<div class="text-muted fs-13">{{ $invoice->customer_email }}</div>@endif
-                        @foreach (\App\Models\Invoice::lines($invoice->customer_address) as $line)
-                            <div class="text-muted fs-13">{{ $line }}</div>
-                        @endforeach
-                        @if ($invoice->customer_id)
-                            <a href="{{ route('customers.show', $invoice->customer_id) }}" class="fs-13">View customer</a>
-                        @endif
-                    @else
-                        <div class="text-muted">Walk-in customer</div>
-                    @endif
-                </div>
-                <div class="col-sm-6 text-sm-end">
-                    <dl class="mb-0 zi-meta">
-                        <dt>Invoice date</dt><dd>{{ $invoice->invoice_date->format('d/m/Y') }}</dd>
-                        @if ($invoice->due_date)<dt>Due date</dt><dd>{{ $invoice->due_date->format('d/m/Y') }}</dd>@endif
-                        @if ($invoice->payment_terms)<dt>Payment terms</dt><dd>{{ $invoice->payment_terms }}</dd>@endif
-                        <dt>Design</dt><dd>{{ $invoice->templateEnum()->label() }}</dd>
-                    </dl>
-                </div>
-            </div>
+    {{-- ---- The invoice, in its design ---------------------------------------------------
+         The very page the PDF is made from, framed and scaled down to fit. A frame rather than
+         inline markup so the design's own styles never meet the app's. --}}
+    <div class="zi-doc-toolbar">
+        <a href="{{ route('invoices.pdf', $invoice) }}" class="btn btn-primary">
+            <i class="ri-download-2-line me-1"></i>Download PDF
+        </a>
+        <a href="{{ route('invoices.pdf', [$invoice, 'inline' => 1]) }}" target="_blank" rel="noopener" class="btn btn-light">
+            <i class="ri-printer-line me-1"></i>Print
+        </a>
+        <a href="{{ route('invoices.preview', $invoice) }}" target="_blank" rel="noopener" class="btn btn-light">
+            <i class="ri-fullscreen-line me-1"></i><span class="d-none d-sm-inline">Full size</span><span class="d-sm-none">Open</span>
+        </a>
+        <span class="text-muted fs-13 ms-auto d-none d-md-inline">{{ $invoice->templateEnum()->label() }} design</span>
+    </div>
 
-            <div class="table-responsive">
-                <table class="table align-middle mb-0">
-                    <thead class="table-light">
-                    <tr>
-                        <th style="width: 40px">#</th>
-                        <th>{{ $invoice->item_label }}</th>
-                        @if ($invoice->isPackage())
-                            <th class="text-end">Status</th>
-                        @else
-                            @if ($invoice->show_quantity)
-                                <th class="text-end d-none d-sm-table-cell">{{ $invoice->quantity_label }}</th>
-                                <th class="text-end d-none d-sm-table-cell">{{ strcasecmp($invoice->rate_label, 'Amount') === 0 ? 'Rate' : $invoice->rate_label }}</th>
-                            @endif
-                            <th class="text-end">Amount</th>
-                        @endif
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @foreach ($invoice->items as $item)
-                        <tr>
-                            <td class="text-muted">{{ str_pad((string) $item->position, 2, '0', STR_PAD_LEFT) }}</td>
-                            <td>
-                                <div class="fw-medium">{{ $item->description }}</div>
-                                @if ($item->detailLines())
-                                    <ul class="zi-subpoints">
-                                        @foreach ($item->detailLines() as $point)<li>{{ $point }}</li>@endforeach
-                                    </ul>
-                                @endif
-                                @if (! $invoice->isPackage() && $invoice->show_quantity)
-                                    <div class="text-muted fs-12 d-sm-none">{{ $item->quantityForDisplay() }} × @money($item->rate, $sym)</div>
-                                @endif
-                            </td>
-                            @if ($invoice->isPackage())
-                                <td class="text-end">
-                                    @if ($item->inclusion === \App\Enums\Inclusion::Excluded)
-                                        <span class="badge bg-dark-subtle text-body"><i class="ri-close-line"></i> Not included</span>
-                                    @else
-                                        <span class="badge bg-success-subtle text-success"><i class="ri-check-line"></i> Included</span>
-                                    @endif
-                                </td>
-                            @else
-                                @if ($invoice->show_quantity)
-                                    <td class="text-end d-none d-sm-table-cell">{{ $item->quantityForDisplay() }}</td>
-                                    <td class="text-end d-none d-sm-table-cell text-nowrap">@money($item->rate, $sym)</td>
-                                @endif
-                                <td class="text-end text-nowrap fw-medium">@money($item->amount, $sym)</td>
-                            @endif
-                        </tr>
-                    @endforeach
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="row g-3 mt-1">
-                <div class="col-md-6 order-2 order-md-1">
-                    <div class="text-uppercase fs-11 fw-semibold text-muted">Amount in words</div>
-                    <div class="fst-italic">{{ $words }}</div>
-                </div>
-                <div class="col-md-6 order-1 order-md-2">
-                    <dl class="zi-totals mb-0">
-                        <dt>{{ $invoice->isPackage() ? 'Package total' : 'Subtotal' }}</dt><dd>@money($invoice->subtotal, $sym)</dd>
-                        @if ((float) $invoice->discount_amount > 0)
-                            <dt>Discount{{ $invoice->discount_type === 'percent' ? ' (' . rtrim(rtrim($invoice->discount_value, '0'), '.') . '%)' : '' }}</dt>
-                            <dd>− @money($invoice->discount_amount, $sym)</dd>
-                        @endif
-                        @if ((float) $invoice->tax_amount > 0)
-                            <dt>Tax ({{ rtrim(rtrim($invoice->tax_percent, '0'), '.') }}%)</dt><dd>@money($invoice->tax_amount, $sym)</dd>
-                        @endif
-                    </dl>
-                    <div class="zi-total mt-2"><span>Total</span><span>@money($invoice->total, $sym)</span></div>
-                </div>
-            </div>
-
-            @if ($invoice->hasCallout())
-                @php $c = $invoice->callout; @endphp
-                <div class="zi-callout mt-4">
-                    <div class="min-w-0">
-                        <div class="fw-semibold">{{ $c['title'] }}</div>
-                        @if (! empty($c['text']))<div class="text-muted fs-13">{{ $c['text'] }}</div>@endif
-                    </div>
-                    @if (! empty($c['amount']))
-                        <div class="text-end flex-shrink-0">
-                            <div class="fw-bold text-primary fs-16">{{ \App\Support\Money::short($c['amount'], $sym) }} <span class="fs-13 fw-normal text-muted">{{ $c['suffix'] ?? '' }}</span></div>
-                            @if (! empty($c['meta']))<div class="text-muted fs-12">{{ $c['meta'] }}</div>@endif
-                        </div>
-                    @endif
-                </div>
-            @endif
-
-            @if ($invoice->termsList())
-                <div class="mt-4">
-                    <div class="text-uppercase fs-11 fw-semibold text-primary mb-1">Terms &amp; conditions</div>
-                    <ul class="mb-0 ps-3 fs-13">
-                        @foreach ($invoice->termsList() as $term)<li>{{ $term }}</li>@endforeach
-                    </ul>
-                </div>
-            @endif
-
-            @if ($invoice->notes)
-                <div class="mt-3 fs-13" style="white-space: pre-line">{{ $invoice->notes }}</div>
-            @endif
-            @if ($invoice->footer_note)
-                <div class="mt-3 fw-semibold">{{ $invoice->footer_note }}</div>
-            @endif
+    <div class="zi-doc-frame" x-data="docFrame()" x-init="init()">
+        <div class="zi-doc-scale" :style="`height: ${height * scale}px`">
+            <iframe src="{{ route('invoices.preview', $invoice) }}" title="Invoice {{ $invoice->number }}"
+                    x-ref="frame" @load="measure()" scrolling="no"
+                    :style="`width: ${width}px; height: ${height}px; transform: translateX(-${width * scale / 2}px) scale(${scale})`"></iframe>
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        // Fit the framed page to the available width, and size the frame to its content so the
+        // page scrolls rather than the frame.
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('docFrame', () => ({
+                width: 820, height: 1123, scale: 1,
+                init() {
+                    window.addEventListener('resize', () => this.fit(), { passive: true });
+                },
+                measure() {
+                    const doc = this.$refs.frame.contentDocument;
+                    if (!doc) { return; }
+                    const sheet = doc.querySelector('.sheet');
+                    this.width = Math.ceil((sheet ? sheet.getBoundingClientRect().width : 794) + 48);
+                    this.height = Math.ceil(doc.documentElement.scrollHeight);
+                    this.fit();
+                    // Fonts can land after load and change the height.
+                    doc.fonts && doc.fonts.ready.then(() => { this.height = Math.ceil(doc.documentElement.scrollHeight); });
+                },
+                fit() {
+                    // $root, not $el: called from the frame's @load, $el would be the iframe itself.
+                    const available = this.$root.clientWidth;
+                    this.scale = Math.min(1, available / this.width);
+                },
+            }));
+        });
+    </script>
+@endpush

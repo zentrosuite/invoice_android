@@ -157,6 +157,7 @@
                             </div>
                             <div class="col-12">
                                 <label class="form-label" for="footer_note">Closing line</label>
+                                <div class="form-text mt-n1 mb-1">Printed under “Thank You!” at the foot of the invoice.</div>
                                 <input type="text" id="footer_note" name="footer_note" maxlength="120"
                                        value="{{ old('footer_note', $settings->footerNote) }}"
                                        class="form-control @error('footer_note') is-invalid @enderror">

@@ -9,11 +9,12 @@ use App\Enums\InvoiceTemplate;
 use App\Http\Requests\InvoiceRequest;
 use App\Models\Customer;
 use App\Models\Invoice;
-use App\Services\Invoices\AmountInWords;
+use App\Services\Invoices\InvoiceDocument;
 use App\Services\Invoices\InvoiceService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 
 final class InvoiceController extends Controller
@@ -63,14 +64,29 @@ final class InvoiceController extends Controller
                 : "Invoice {$invoice->number} saved.");
     }
 
-    public function show(Invoice $invoice, AmountInWords $words): View
+    public function show(Invoice $invoice): View
     {
-        $invoice->load('items');
+        return view('invoices.show', ['invoice' => $invoice]);
+    }
 
-        return view('invoices.show', [
-            'invoice' => $invoice,
-            'words' => $words->convert($invoice->total, AmountInWords::currencyWordFor($invoice->currency_symbol)),
-        ]);
+    /**
+     * The invoice in its design, as a standalone page — what the record page frames, and what
+     * "open full size" shows. The same markup the PDF is made from.
+     */
+    public function preview(Invoice $invoice, InvoiceDocument $document): Response
+    {
+        return response($document->html($invoice))
+            ->header('X-Frame-Options', 'SAMEORIGIN')
+            ->header('Cache-Control', 'no-store');
+    }
+
+    public function pdf(Request $request, Invoice $invoice, InvoiceDocument $document): Response
+    {
+        $pdf = $document->pdf($invoice);
+        $filename = $document->filename($invoice);
+
+        // ?inline=1 opens in the browser's viewer (for printing); otherwise it downloads.
+        return $request->boolean('inline') ? $pdf->stream($filename) : $pdf->download($filename);
     }
 
     public function edit(Invoice $invoice): View

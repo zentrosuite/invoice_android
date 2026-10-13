@@ -11,6 +11,7 @@ use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\RoundBlockSizeMode;
+use Endroid\QrCode\Writer\PngWriter;
 use Endroid\QrCode\Writer\SvgWriter;
 
 /**
@@ -75,7 +76,21 @@ final readonly class UpiQrService
 
     public function render(string $payload, int $size = 220): string
     {
-        $qr = new QrCode(
+        return (new SvgWriter)->write($this->code($payload, $size))->getDataUri();
+    }
+
+    /**
+     * PNG data URI, for the PDF: dompdf draws a raster image far more reliably than an SVG made of
+     * hundreds of rectangles. Rendered large and scaled down, so it stays crisp when printed.
+     */
+    public function renderPng(string $payload, int $size = 480): string
+    {
+        return (new PngWriter)->write($this->code($payload, $size))->getDataUri();
+    }
+
+    private function code(string $payload, int $size): QrCode
+    {
+        return new QrCode(
             data: $payload,
             encoding: new Encoding('UTF-8'),
             errorCorrectionLevel: ErrorCorrectionLevel::Medium,
@@ -83,8 +98,6 @@ final readonly class UpiQrService
             margin: 8,
             roundBlockSizeMode: RoundBlockSizeMode::Margin,
         );
-
-        return (new SvgWriter)->write($qr)->getDataUri();
     }
 
     /**

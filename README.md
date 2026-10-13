@@ -16,7 +16,7 @@ as-is to shared hosting such as InfinityFree.
 | 2 | Company profile and invoice settings (logo, address, UPI ID, numbering, tax %) | done |
 | 3 | Customers | done |
 | 4 | Invoice builder: itemised or package pricing, drafts, statuses, editing | done |
-| 5 | Invoice designs (Package, Modern, Classic, Receipt, Minimal), PDF download, UPI QR on unpaid invoices | |
+| 5 | Invoice designs (Package, Modern, Classic, Receipt, Minimal), PDF download, UPI QR on unpaid invoices | done |
 | 6 | WhatsApp sharing and public invoice link | |
 | 7 | Dashboard, payments, mobile polish, InfinityFree deploy package | |
 
@@ -55,6 +55,13 @@ Tests use a separate MySQL database, `zentro_invoices_test` (see `phpunit.xml`):
 php artisan test
 vendor/bin/pint
 ```
+
+Invoice designs live in `resources/views/documents/`. One view per design serves both the
+on-screen preview and the PDF (dompdf), so they cannot drift apart — which means the views are
+written for dompdf: CSS 2.1, tables for layout, no flexbox, grid, CSS variables or gradients,
+and images as data URIs. The fonts are Inter (SIL OFL, `public/assets/fonts/inter`), registered
+as one family per weight because dompdf only distinguishes normal and bold. dompdf caches font
+metrics in `storage/fonts`, which must be writable.
 
 Uploaded logos are re-encoded to PNG and stored in `public/uploads/company` — not
 `storage/app/public`, because shared hosting cannot create the `storage:link` symlink. On a local

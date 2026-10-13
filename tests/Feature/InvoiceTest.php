@@ -75,11 +75,11 @@ final class InvoiceTest extends TestCase
         $this->assertSame(Inclusion::Excluded, $items[2]->inclusion);
         $this->assertSame(2, app(InvoiceSettings::class)->nextNumber, 'The series advanced.');
 
-        $this->actingAs($this->user)->get(route('invoices.show', $invoice))
+        $this->actingAs($this->user)->get(route('invoices.preview', $invoice))
             ->assertOk()
             ->assertSee('Three Thousand Five Hundred Ninety-Nine Rupees Only')
             ->assertSee('Not included')
-            ->assertSee('₹3,599.00');
+            ->assertSee('₹3,599');
     }
 
     public function test_an_itemised_shop_bill_with_discount_and_tax(): void

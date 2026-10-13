@@ -36,6 +36,8 @@ Route::middleware('auth')->group(function (): void {
     Route::resource('invoices', InvoiceController::class);
     Route::post('invoices/{invoice}/duplicate', [InvoiceController::class, 'duplicate'])->name('invoices.duplicate');
     Route::put('invoices/{invoice}/status', [InvoiceController::class, 'status'])->name('invoices.status');
+    Route::get('invoices/{invoice}/preview', [InvoiceController::class, 'preview'])->name('invoices.preview');
+    Route::get('invoices/{invoice}/pdf', [InvoiceController::class, 'pdf'])->name('invoices.pdf');
 
     Route::get('company', [CompanyProfileController::class, 'edit'])->name('company.edit');
     Route::put('company', [CompanyProfileController::class, 'update'])->name('company.update');

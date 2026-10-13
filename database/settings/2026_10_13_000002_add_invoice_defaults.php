@@ -22,6 +22,6 @@ return new class extends SettingsMigration
 
         $this->migrator->add('invoice.defaultNotes', null);
 
-        $this->migrator->add('invoice.footerNote', 'Thank you for your business.');
+        $this->migrator->add('invoice.footerNote', 'We appreciate your business.');
     }
 };
