@@ -2,6 +2,16 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    {{-- The page's own address. In the Android app, NativePHP follows a form's redirect itself and
+         leaves the WebView on the form's URL; back, refresh and "redirect back" would then hit a
+         POST-only route (405). The address bar is put right before anything else runs. --}}
+    <meta name="zi-url" content="{{ url()->full() }}">
+    <script>
+        try {
+            var ziUrl = document.querySelector('meta[name="zi-url"]').content;
+            if (ziUrl && new URL(ziUrl, location.href).href !== location.href) { history.replaceState(history.state, '', ziUrl); }
+        } catch (e) {}
+    </script>
     <meta name="robots" content="noindex, nofollow">
     <title>@yield('title', 'Dashboard') &middot; {{ config('app.name') }}</title>
 

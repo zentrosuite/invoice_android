@@ -1,0 +1,25 @@
+{
+    "name": "zentro/nativephp-system-bars",
+    "description": "Status bar icons that follow the app's own light/dark theme (Zentro Invoice)",
+    "type": "nativephp-plugin",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2",
+        "nativephp/mobile": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Zentro\\SystemBars\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Zentro\\SystemBars\\SystemBarsServiceProvider"
+            ]
+        },
+        "nativephp": {
+            "manifest": "nativephp.json"
+        }
+    }
+}

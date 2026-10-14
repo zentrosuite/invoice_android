@@ -85,7 +85,7 @@
 
 @section('content')
     <form method="POST" action="{{ $editing ? route('invoices.update', $invoice) : route('invoices.store') }}"
-          x-data="invoiceBuilder(@js($state))" @submit="onSubmit($event)" @input="dirty = true"
+          data-no-refresh x-data="invoiceBuilder(@js($state))" @submit="onSubmit($event)" @input="dirty = true"
           class="zi-builder" novalidate>
         @csrf
         @if ($editing) @method('PUT') @endif

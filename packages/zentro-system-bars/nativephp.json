@@ -1,0 +1,22 @@
+{
+    "name": "zentro/nativephp-system-bars",
+    "version": "1.0.0",
+    "description": "Match the status and navigation bar icons to the page's own light or dark theme.",
+    "namespace": "ZentroSystemBars",
+    "platforms": ["android"],
+    "bridge_functions": [
+        {
+            "name": "ZentroSystemBars.SetStyle",
+            "android": "com.zentrosuite.systembars.SystemBarsFunctions.SetStyle",
+            "description": "dark: true for light icons over a dark page, false for dark icons over a light page"
+        }
+    ],
+    "android": {
+        "min_version": 26,
+        "permissions": [],
+        "dependencies": {
+            "implementation": []
+        }
+    },
+    "events": []
+}

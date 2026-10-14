@@ -30,6 +30,62 @@ final class PaymentTest extends TestCase
         $company->save();
     }
 
+    /** The app sends forms with fetch (app.js); a redirect comes back as JSON to follow. */
+    public function test_a_payment_sent_by_the_app_answers_with_where_to_go(): void
+    {
+        $invoice = $this->invoice();
+
+        $this->actingAs($this->user)
+            ->post(route('invoices.payments.store', $invoice), [
+                'amount' => '1,000', 'paid_on' => now()->toDateString(), 'method' => 'upi',
+            ], ['X-Zentro-Form' => '1'])
+            ->assertOk()
+            ->assertExactJson(['redirect' => route('invoices.show', $invoice)])
+            ->assertSessionHas('success');
+
+        $this->assertSame(1, $invoice->payments()->count());
+    }
+
+    /** Validation errors go back to the page the form was on — never to the POST-only URL (405). */
+    public function test_an_invalid_payment_sent_by_the_app_goes_back_with_errors(): void
+    {
+        $invoice = $this->invoice();
+        $page = route('invoices.show', $invoice);
+
+        $this->actingAs($this->user)
+            ->from($page)
+            ->post(route('invoices.payments.store', $invoice), ['amount' => '', 'paid_on' => ''], ['X-Zentro-Form' => '1'])
+            ->assertOk()
+            ->assertExactJson(['redirect' => $page])
+            ->assertSessionHasErrorsIn('payment', ['amount', 'paid_on']);
+    }
+
+    /** Signing in starts a new session: its cookie must survive the JSON answer. */
+    public function test_the_session_cookie_travels_with_the_json_answer(): void
+    {
+        $this->post(route('login.store'), ['pin' => '1234'], ['X-Zentro-Form' => '1'])
+            ->assertOk()
+            ->assertJsonStructure(['redirect'])
+            ->assertCookie(config('session.cookie'));
+    }
+
+    public function test_a_plain_form_post_still_redirects(): void
+    {
+        $invoice = $this->invoice();
+
+        $this->actingAs($this->user)->post(route('invoices.payments.store', $invoice), [
+            'amount' => '10', 'paid_on' => now()->toDateString(), 'method' => 'cash',
+        ])->assertRedirect(route('invoices.show', $invoice));
+    }
+
+    public function test_every_page_states_its_own_address(): void
+    {
+        $invoice = $this->invoice();
+
+        $this->actingAs($this->user)->get(route('invoices.show', $invoice))
+            ->assertSee('<meta name="zi-url" content="' . route('invoices.show', $invoice) . '">', false);
+    }
+
     public function test_a_part_payment_leaves_a_balance(): void
     {
         $invoice = $this->invoice();

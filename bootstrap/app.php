@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\EnsureSetUp;
+use App\Http\Middleware\FormRedirectsAsJson;
 use App\Http\Middleware\LockWhenIdle;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
@@ -25,6 +26,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [EnsureSetUp::class, LockWhenIdle::class]);
+        // Outermost, so every redirect — the PIN lock and setup ones included — is converted.
+        $middleware->web(prepend: [FormRedirectsAsJson::class]);
         // Laravel runs its own sign-in check early; "is the app set up at all?" must come first,
         // or a first launch would be sent to the PIN screen before a PIN exists.
         $middleware->prependToPriorityList(before: AuthenticatesRequests::class, prepend: EnsureSetUp::class);

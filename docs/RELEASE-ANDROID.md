@@ -190,6 +190,8 @@ adb shell run-as com.zentrosuite.invoice \
 | `TTY mode requires /dev/tty` | Run in a real terminal, or use the Gradle command in section 3. |
 | A page works in the browser but gives **500** on the phone | The phone's PHP differs from the desktop's: **no GD** (no image functions; dompdf cannot embed PNGs), no `/tmp`, no zip, and NativePHP leaves some packages out of the bundle (`vendor/endroid`; see `BundleExclusions.php`). `tests/Unit/PhoneRuntimeTest.php` guards the known ones. Read the real error from a debug build (below). |
 | "CSRF token mismatch" on buttons that work in the browser | NativePHP overwrites the `X-CSRF-TOKEN` header with a remembered token. Every `fetch` POST must also send `_token` in its body (`ZentroNative.post` does). |
+| A form "loses" its fields, or back/refresh gives **405** | NativePHP's native form-post path. Every POST form goes through `fetch` (app.js) and `FormRedirectsAsJson`; `<meta name="zi-url">` corrects the address after NativePHP's internal redirects. Keep new forms plain `<form method="POST">` and they get this automatically. |
+| Status-bar icons invisible | NativePHP follows the phone's dark mode; the page reports its own theme through `ZentroSystemBars.SetStyle` (app.js). |
 | Screens run under the clock / gesture bar | Android 15 draws edge to edge. Fixed bars must add `var(--inset-top)` / `var(--inset-bottom)` (see the end of `app.css`). |
 | Keystore lost | Existing installs can no longer be updated. Owners must Backup, uninstall, install the new build and Restore. Prevent it: keep copies of `~/.zentro-android/`. |
 
@@ -200,4 +202,5 @@ adb shell run-as com.zentrosuite.invoice \
 | Version | Code | Date | Notes |
 |---|---|---|---|
 | 1.0.0 | 1 | 2026-10-13 | First build. **Withdrawn** the same day: CSRF errors on WhatsApp/Share/Save and quick-add customer, 500 on logo upload (no GD), pages under the system bars. |
-| 1.0.0 | 2 | 2026-10-13 | Same features, those fixed, plus two more found on the device: no PDF could be made (dompdf's temp folder was /tmp) and any UPI QR crashed (endroid is not in the bundle). Logos now JPEG, UPI QR now SVG via Bacon. Every feature run on the emulator before release. Installs over code 1. |
+| 1.0.0 | 2 | 2026-10-13 | **Withdrawn** 2026-10-14: payments could not be saved (form body lost, then 405), status-bar icons invisible with the phone in dark mode and the app in light. Was: same features, those fixed, plus two more found on the device: no PDF could be made (dompdf's temp folder was /tmp) and any UPI QR crashed (endroid is not in the bundle). Logos now JPEG, UPI QR now SVG via Bacon. Every feature run on the emulator before release. Installs over code 1. |
+| 1.0.0 | 3 | 2026-10-14 | Every form now sent with fetch (FormRedirectsAsJson); the page address is corrected after NativePHP's internal redirects (no more 405 on back/refresh); dates shown dd/mm/yyyy; status-bar icons follow the app's theme (own plugin `zentro-system-bars`); page transitions, loading bar, pull to refresh. All modules walked at 360px before release. |

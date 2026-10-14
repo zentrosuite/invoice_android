@@ -229,7 +229,7 @@
                                     <div class="zi-hp-name" x-text="f.name || 'Your business name'"></div>
                                     <div class="zi-hp-line" x-show="f.phone" x-text="f.phone"></div>
                                     <div class="zi-hp-line" x-show="f.email" x-text="f.email"></div>
-                                    <div class="zi-hp-line" x-show="f.website" x-text="f.website.replace(/^https?:\/\//, '')"></div>
+                                    <div class="zi-hp-line" x-show="f.website" x-text="(f.website || '').replace(/^https?:\/\//, '')"></div>
                                 </div>
                             </div>
                             <div class="zi-hp-title">INVOICE</div>

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "886fd857e05c2dd291d72c3d4f621c0f",
+    "content-hash": "b5c8df9f94d4efd861e213c3064f6959",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -7494,6 +7494,43 @@
             "time": "2024-11-24T11:45:37+00:00"
         },
         {
+            "name": "zentro/nativephp-system-bars",
+            "version": "dev-mobile",
+            "dist": {
+                "type": "path",
+                "url": "packages/zentro-system-bars",
+                "reference": "ead25642e5316ebcedffa5449372aef7a225c068"
+            },
+            "require": {
+                "nativephp/mobile": "^4.0",
+                "php": "^8.2"
+            },
+            "type": "nativephp-plugin",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Zentro\\SystemBars\\SystemBarsServiceProvider"
+                    ]
+                },
+                "nativephp": {
+                    "manifest": "nativephp.json"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Zentro\\SystemBars\\": "src/"
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "Status bar icons that follow the app's own light/dark theme (Zentro Invoice)",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
             "name": "zentro/nativephp-whatsapp",
             "version": "dev-mobile",
             "dist": {
@@ -10104,6 +10141,7 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
+        "zentro/nativephp-system-bars": 20,
         "zentro/nativephp-whatsapp": 20
     },
     "prefer-stable": true,
