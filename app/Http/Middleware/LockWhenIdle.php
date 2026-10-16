@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class LockWhenIdle
 {
-    public const IDLE_MINUTES = 5;
+    public const IDLE_MINUTES = 20;
 
     public function handle(Request $request, Closure $next): Response
     {

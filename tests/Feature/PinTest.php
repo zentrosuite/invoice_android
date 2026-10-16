@@ -85,11 +85,21 @@ final class PinTest extends TestCase
         $user = $this->owner();
 
         $this->actingAs($user)
-            ->withSession(['last_activity' => time() - 6 * 60])
+            ->withSession(['last_activity' => time() - 21 * 60])
             ->get(route('invoices.index'))
             ->assertRedirect(route('login'));
 
         $this->assertGuest();
+    }
+
+    public function test_the_app_stays_open_for_twenty_minutes_without_use(): void
+    {
+        $this->actingAs($this->owner())
+            ->withSession(['last_activity' => time() - 19 * 60])
+            ->get(route('invoices.index'))
+            ->assertOk();
+
+        $this->assertAuthenticated();
     }
 
     public function test_the_recovery_code_sets_a_new_pin(): void
