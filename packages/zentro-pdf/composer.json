@@ -1,0 +1,25 @@
+{
+    "name": "zentro/nativephp-pdf",
+    "description": "Print an HTML file to PDF with Android's own browser engine (Zentro Invoice)",
+    "type": "nativephp-plugin",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2",
+        "nativephp/mobile": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Zentro\\Pdf\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Zentro\\Pdf\\PdfServiceProvider"
+            ]
+        },
+        "nativephp": {
+            "manifest": "nativephp.json"
+        }
+    }
+}

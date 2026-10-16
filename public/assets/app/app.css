@@ -6,6 +6,22 @@
  | (target 360px, comfortable at 390px, in light and dark).
  */
 
+/* ---- Tamil -----------------------------------------------------------------------------------
+ | Public Sans and Poppins (the theme's fonts) have no Tamil letters. Noto Sans Tamil is added
+ | UNDER THEIR NAMES, for the Tamil range only: wherever the theme asks for either font, a Tamil
+ | character is drawn in Noto Sans Tamil and everything else is unchanged. Bundled, so it looks the
+ | same offline and on every phone. The invoice designs carry their own copy (documents/layout). */
+@font-face { font-family: 'Public Sans'; font-style: normal; font-weight: 300; font-display: swap; src: url('../fonts/noto-tamil/NotoSansTamil-Regular.ttf') format('truetype'); unicode-range: U+0B80-0BFF, U+200C-200D, U+25CC; }
+@font-face { font-family: 'Public Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url('../fonts/noto-tamil/NotoSansTamil-Regular.ttf') format('truetype'); unicode-range: U+0B80-0BFF, U+200C-200D, U+25CC; }
+@font-face { font-family: 'Public Sans'; font-style: normal; font-weight: 500; font-display: swap; src: url('../fonts/noto-tamil/NotoSansTamil-Medium.ttf') format('truetype'); unicode-range: U+0B80-0BFF, U+200C-200D, U+25CC; }
+@font-face { font-family: 'Public Sans'; font-style: normal; font-weight: 600; font-display: swap; src: url('../fonts/noto-tamil/NotoSansTamil-SemiBold.ttf') format('truetype'); unicode-range: U+0B80-0BFF, U+200C-200D, U+25CC; }
+@font-face { font-family: 'Public Sans'; font-style: normal; font-weight: 700; font-display: swap; src: url('../fonts/noto-tamil/NotoSansTamil-Bold.ttf') format('truetype'); unicode-range: U+0B80-0BFF, U+200C-200D, U+25CC; }
+@font-face { font-family: 'Poppins'; font-style: normal; font-weight: 300; font-display: swap; src: url('../fonts/noto-tamil/NotoSansTamil-Regular.ttf') format('truetype'); unicode-range: U+0B80-0BFF, U+200C-200D, U+25CC; }
+@font-face { font-family: 'Poppins'; font-style: normal; font-weight: 400; font-display: swap; src: url('../fonts/noto-tamil/NotoSansTamil-Regular.ttf') format('truetype'); unicode-range: U+0B80-0BFF, U+200C-200D, U+25CC; }
+@font-face { font-family: 'Poppins'; font-style: normal; font-weight: 500; font-display: swap; src: url('../fonts/noto-tamil/NotoSansTamil-Medium.ttf') format('truetype'); unicode-range: U+0B80-0BFF, U+200C-200D, U+25CC; }
+@font-face { font-family: 'Poppins'; font-style: normal; font-weight: 600; font-display: swap; src: url('../fonts/noto-tamil/NotoSansTamil-SemiBold.ttf') format('truetype'); unicode-range: U+0B80-0BFF, U+200C-200D, U+25CC; }
+@font-face { font-family: 'Poppins'; font-style: normal; font-weight: 700; font-display: swap; src: url('../fonts/noto-tamil/NotoSansTamil-Bold.ttf') format('truetype'); unicode-range: U+0B80-0BFF, U+200C-200D, U+25CC; }
+
 /* ---- Brand colour --------------------------------------------------------------------------
  | Velzon's corporate primary is a light periwinkle (#687cfe). Zentro's indigo is the colour of
  | the logo and of the invoice designs, so the app wears the same one. Dark mode gets a lighter

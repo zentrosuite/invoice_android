@@ -37,6 +37,7 @@ class NativeServiceProvider extends ServiceProvider
             \Native\Mobile\Providers\ShareServiceProvider::class,
             \Smronju\NativephpDocumentPicker\DocumentPickerServiceProvider::class,
             \Zentro\WhatsApp\WhatsAppServiceProvider::class,
+            \Zentro\Pdf\PdfServiceProvider::class,
             \Zentro\SystemBars\SystemBarsServiceProvider::class,
         
         

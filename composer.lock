@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b5c8df9f94d4efd861e213c3064f6959",
+    "content-hash": "3eb1c5d8d7eadb14220b9433a1bedda6",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -7494,6 +7494,43 @@
             "time": "2024-11-24T11:45:37+00:00"
         },
         {
+            "name": "zentro/nativephp-pdf",
+            "version": "dev-mobile",
+            "dist": {
+                "type": "path",
+                "url": "packages/zentro-pdf",
+                "reference": "05d3575852883954f6285b600a5b24fe189521bc"
+            },
+            "require": {
+                "nativephp/mobile": "^4.0",
+                "php": "^8.2"
+            },
+            "type": "nativephp-plugin",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Zentro\\Pdf\\PdfServiceProvider"
+                    ]
+                },
+                "nativephp": {
+                    "manifest": "nativephp.json"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Zentro\\Pdf\\": "src/"
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "Print an HTML file to PDF with Android's own browser engine (Zentro Invoice)",
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
+        },
+        {
             "name": "zentro/nativephp-system-bars",
             "version": "dev-mobile",
             "dist": {
@@ -10141,6 +10178,7 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
+        "zentro/nativephp-pdf": 20,
         "zentro/nativephp-system-bars": 20,
         "zentro/nativephp-whatsapp": 20
     },

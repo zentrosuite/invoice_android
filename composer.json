@@ -15,6 +15,7 @@
         "nativephp/mobile-share": "^1.1",
         "smronju/nativephp-document-picker": "*",
         "spatie/laravel-settings": "^3.9",
+        "zentro/nativephp-pdf": "@dev",
         "zentro/nativephp-system-bars": "@dev",
         "zentro/nativephp-whatsapp": "@dev"
     },
@@ -106,6 +107,13 @@
         "name": "zentro-system-bars",
         "type": "path",
         "url": "packages/zentro-system-bars",
+        "options": {
+            "symlink": false
+        }
+    }, {
+        "name": "zentro-pdf",
+        "type": "path",
+        "url": "packages/zentro-pdf",
         "options": {
             "symlink": false
         }

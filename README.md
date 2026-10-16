@@ -8,12 +8,18 @@ This branch differs from the website (`zentrosuite/invoice`) in a few deliberate
 
 | Website | App |
 |---|---|
-| Web installer, email + password login | First-launch welcome (profile, business name), **4-digit PIN**, recovery code; locks after 5 idle minutes |
+| Web installer, email + password login | First-launch welcome (profile, business name), **4-digit PIN**, recovery code; locks after 20 idle minutes |
 | MySQL on the host | SQLite on the phone, migrated automatically on start |
 | Customer link `/i/…` + WhatsApp message | **Send on WhatsApp opens the customer's chat with the PDF attached** (own plugin, `packages/zentro-whatsapp`) |
 | Download PDF / CSV | Android **Save as** (Downloads, Google Drive…) and the share sheet |
 | — | **Backup / Restore**: one `.zentrobackup` file (database + logo + signature); restore from the first welcome screen or the Backup page; dashboard reminder after 7 days |
 | Logo in `public/uploads` | Logo in `storage/app/uploads` (public/ is replaced by app updates) |
+| PDFs by dompdf | **PDFs printed by Android's own browser engine** (own plugin, `packages/zentro-pdf`), so Tamil letters join correctly; dompdf is the fallback |
+
+Both have **advances** (money received before an invoice, kept on the customer and adjusted from the
+invoice builder or an invoice page), **auto-draft** (the builder saves unsaved work every few seconds;
+after a crash the dashboard offers "Continue") and **Tamil** in the screens and the invoice designs
+(Noto Sans Tamil, bundled).
 
 ## Where the data is stored
 

@@ -1,0 +1,22 @@
+{
+    "name": "zentro/nativephp-pdf",
+    "version": "1.0.0",
+    "description": "Print an HTML file to PDF with Android's WebView, which shapes Tamil and other Indian scripts correctly.",
+    "namespace": "ZentroPdf",
+    "platforms": ["android"],
+    "bridge_functions": [
+        {
+            "name": "ZentroPdf.FromHtml",
+            "android": "com.zentrosuite.pdf.PdfFunctions.FromHtml",
+            "description": "Render htmlPath to pdfPath at widthMm × heightMm (heightMm 0 = one page as long as the content)"
+        }
+    ],
+    "android": {
+        "min_version": 26,
+        "permissions": [],
+        "dependencies": {
+            "implementation": []
+        }
+    },
+    "events": []
+}

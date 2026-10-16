@@ -21,6 +21,15 @@
         @font-face { font-family: 'Inter SemiBold'; font-weight: normal; font-style: normal; src: url("{{ $fontUrl('Inter-SemiBold.ttf') }}") format('truetype'); }
         @font-face { font-family: 'Inter SemiBold'; font-weight: normal; font-style: italic; src: url("{{ $fontUrl('Inter-SemiBoldItalic.ttf') }}") format('truetype'); }
         @font-face { font-family: 'Inter ExtraBold'; font-weight: normal; font-style: normal; src: url("{{ $fontUrl('Inter-ExtraBold.ttf') }}") format('truetype'); }
+        {{-- Tamil, for names and items typed in Tamil. Inter has no Tamil letters, so every
+             stack names Noto Sans Tamil next: a Tamil character is drawn in it, the rest in Inter.
+             Same per-weight families as Inter. On the phone the PDF is drawn by Android's own
+             browser engine (ZentroPdf plugin), which joins Tamil letters correctly; dompdf
+             cannot, and is only the fallback. --}}
+        @font-face { font-family: 'Noto Sans Tamil'; font-weight: normal; font-style: normal; src: url("{{ $tamilFontUrl('NotoSansTamil-Regular.ttf') }}") format('truetype'); }
+        @font-face { font-family: 'Noto Sans Tamil'; font-weight: bold; font-style: normal; src: url("{{ $tamilFontUrl('NotoSansTamil-Bold.ttf') }}") format('truetype'); }
+        @font-face { font-family: 'Noto Sans Tamil SemiBold'; font-weight: normal; font-style: normal; src: url("{{ $tamilFontUrl('NotoSansTamil-SemiBold.ttf') }}") format('truetype'); }
+        @font-face { font-family: 'Noto Sans Tamil Bold'; font-weight: normal; font-style: normal; src: url("{{ $tamilFontUrl('NotoSansTamil-Bold.ttf') }}") format('truetype'); }
 
         {{-- One @page rule only, supplied by the design: dompdf keeps the first it sees rather
              than letting a later one override it. --}}
@@ -29,7 +38,7 @@
         body, body * { margin: 0; padding: 0; }
         html, body { background: #ffffff; }
         body {
-            font-family: 'Inter', 'DejaVu Sans', sans-serif;
+            font-family: 'Inter', 'Noto Sans Tamil', 'DejaVu Sans', sans-serif;
             font-size: 9.4pt;
             line-height: 1.42;
             color: #3d4260;
@@ -39,8 +48,8 @@
         table { border-collapse: collapse; width: 100%; }
         td, th { vertical-align: top; text-align: left; }
         img { border: 0; }
-        .semi { font-family: 'Inter SemiBold', 'Inter', sans-serif; }
-        .xbold { font-family: 'Inter ExtraBold', 'Inter', sans-serif; }
+        .semi { font-family: 'Inter SemiBold', 'Noto Sans Tamil SemiBold', 'Inter', sans-serif; }
+        .xbold { font-family: 'Inter ExtraBold', 'Noto Sans Tamil Bold', 'Inter', sans-serif; }
         .nowrap { white-space: nowrap; }
         .right { text-align: right; }
         .center { text-align: center; }
@@ -56,7 +65,7 @@
             padding: 3px 10px;
             border: 2px solid;
             border-radius: 6px;
-            font-family: 'Inter ExtraBold', 'Inter', sans-serif;
+            font-family: 'Inter ExtraBold', 'Noto Sans Tamil Bold', 'Inter', sans-serif;
             letter-spacing: 2px;
             font-size: 11pt;
         }
