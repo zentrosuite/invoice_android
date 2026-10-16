@@ -95,12 +95,14 @@
     {{-- Unsaved work from an earlier visit (the app was closed or crashed half way). Outside the
          builder's form: it has forms of its own. --}}
     @if ($unsaved)
-        <div class="alert alert-primary zi-unsaved d-flex flex-wrap align-items-center gap-2" role="status">
+        <div class="alert alert-primary zi-unsaved" role="status">
             <i class="ri-history-line fs-20"></i>
-            <div class="me-auto min-w-0">
+            <div class="zi-unsaved-text">
                 <div class="fw-semibold">You have unsaved work on {{ $editing ? 'this invoice' : 'a new invoice' }}</div>
-                <div class="fs-13 text-truncate">{{ $unsaved->label }} · {{ $unsaved->updated_at->format('d/m/Y, g:i a') }}</div>
+                <div class="fs-13 text-truncate">{{ $unsaved->label }}</div>
+                <div class="fs-12 opacity-75">Saved {{ $unsaved->updated_at->format('d/m/Y, g:i a') }}</div>
             </div>
+            <div class="zi-unsaved-actions">
             <form method="POST" action="{{ route('invoices.autosave.destroy') }}">
                 @csrf @method('DELETE')
                 <input type="hidden" name="key" value="{{ $autosaveKey }}">
@@ -109,6 +111,7 @@
             <a href="{{ route('invoices.autosave.restore', ['key' => $autosaveKey]) }}" class="btn btn-primary btn-sm">
                 <i class="ri-play-line me-1"></i>Continue
             </a>
+            </div>
         </div>
     @elseif (session('autosave_restored'))
         <div class="alert alert-success fs-13 py-2" role="status">

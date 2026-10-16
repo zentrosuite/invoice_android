@@ -529,3 +529,15 @@ html, body { overscroll-behavior-y: contain; }
 @keyframes zi-spin { to { transform: rotate(360deg); } }
 [data-bs-theme=dark] .zi-ptr { color: #7c84e8; }
 [data-bs-theme=dark] .zi-ptr.is-ready { color: #fff; background: #4b55d6; }
+
+/* ---- Unsaved invoice prompt -------------------------------------------------------------------
+ | Icon and text side by side, the buttons on their own row underneath: at 360px the label (who,
+ | how many lines) gets the full width and truncates instead of running off the card. */
+.zi-unsaved { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: .75rem; row-gap: .5rem; align-items: start; }
+.zi-unsaved > i { line-height: 1.2; }
+.zi-unsaved-text { min-width: 0; }
+.zi-unsaved-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: .5rem; }
+@media (min-width: 768px) {
+    .zi-unsaved { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; }
+    .zi-unsaved-actions { grid-column: auto; }
+}
