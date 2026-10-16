@@ -18,11 +18,16 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class LockWhenIdle
 {
-    public const IDLE_MINUTES = 20;
+    /**
+     * Minutes without use before the PIN is asked again; null = never. Off since 2026-10-16 at
+     * the owner's request: the app stays open until Lock is tapped. Set a number to bring it back
+     * (and lower SESSION_LIFETIME to match).
+     */
+    public const IDLE_MINUTES = null;
 
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::check() && ! $request->is('_native/*')) {
+        if (self::IDLE_MINUTES !== null && Auth::check() && ! $request->is('_native/*')) {
             $last = (int) $request->session()->get('last_activity', 0);
 
             if ($last > 0 && time() - $last > self::IDLE_MINUTES * 60) {

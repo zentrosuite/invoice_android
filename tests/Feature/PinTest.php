@@ -80,26 +80,23 @@ final class PinTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_the_app_locks_after_being_idle(): void
-    {
-        $user = $this->owner();
-
-        $this->actingAs($user)
-            ->withSession(['last_activity' => time() - 21 * 60])
-            ->get(route('invoices.index'))
-            ->assertRedirect(route('login'));
-
-        $this->assertGuest();
-    }
-
-    public function test_the_app_stays_open_for_twenty_minutes_without_use(): void
+    public function test_the_app_does_not_lock_however_long_it_sits_unused(): void
     {
         $this->actingAs($this->owner())
-            ->withSession(['last_activity' => time() - 19 * 60])
+            ->withSession(['last_activity' => time() - 3 * 24 * 60 * 60])
             ->get(route('invoices.index'))
             ->assertOk();
 
         $this->assertAuthenticated();
+        $this->assertNull(\App\Http\Middleware\LockWhenIdle::IDLE_MINUTES);
+        $this->assertGreaterThanOrEqual(525600, config('session.lifetime'), 'The session must not run out either.');
+    }
+
+    public function test_lock_still_signs_out(): void
+    {
+        $this->actingAs($this->owner())->post(route('logout'))->assertRedirect(route('login'));
+
+        $this->assertGuest();
     }
 
     public function test_the_recovery_code_sets_a_new_pin(): void

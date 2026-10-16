@@ -41,7 +41,11 @@
                         <button type="submit" class="btn btn-soft-primary w-100 mt-4">Issue a new recovery code</button>
                     </form>
                     <p class="text-muted fs-12 mt-3 mb-0">
-                        The app locks itself after {{ \App\Http\Middleware\LockWhenIdle::IDLE_MINUTES }} minutes without use.
+                        @if (\App\Http\Middleware\LockWhenIdle::IDLE_MINUTES)
+                            The app locks itself after {{ \App\Http\Middleware\LockWhenIdle::IDLE_MINUTES }} minutes without use.
+                        @else
+                            The app stays open until you tap <strong>Lock</strong> in the menu.
+                        @endif
                     </p>
                 </div>
             </div>

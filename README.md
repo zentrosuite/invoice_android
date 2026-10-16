@@ -8,7 +8,7 @@ This branch differs from the website (`zentrosuite/invoice`) in a few deliberate
 
 | Website | App |
 |---|---|
-| Web installer, email + password login | First-launch welcome (profile, business name), **4-digit PIN**, recovery code; locks after 20 idle minutes |
+| Web installer, email + password login | First-launch welcome (profile, business name), **4-digit PIN**, recovery code; stays open until **Lock** is tapped (no idle lock) |
 | MySQL on the host | SQLite on the phone, migrated automatically on start |
 | Customer link `/i/…` + WhatsApp message | **Send on WhatsApp opens the customer's chat with the PDF attached** (own plugin, `packages/zentro-whatsapp`) |
 | Download PDF / CSV | Android **Save as** (Downloads, Google Drive…) and the share sheet |
