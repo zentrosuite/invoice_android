@@ -168,7 +168,8 @@
                     @endif
                     <tr class="grand"><td class="semi">{{ $isPaid ? 'Total paid' : 'Total' }}</td><td class="v xbold">{{ $money($invoice->total) }}</td></tr>
                     @if ($isPartial)
-                        <tr><td>Paid</td><td class="v">&minus; {{ $money($invoice->amount_paid) }}</td></tr>
+                        @if ((float) $advance > 0)<tr><td>Advance adjusted</td><td class="v">&minus; {{ $money($advance) }}</td></tr>@endif
+                        @if ((float) $paidDirect > 0)<tr><td>Paid</td><td class="v">&minus; {{ $money($paidDirect) }}</td></tr>@endif
                         <tr><td class="semi">Balance due</td><td class="v xbold">{{ $money($balance) }}</td></tr>
                     @endif
                 </table>

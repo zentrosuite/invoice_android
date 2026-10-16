@@ -47,6 +47,9 @@ final class InvoiceRequest extends FormRequest
             'discount_type' => ['nullable', Rule::in(['amount', 'percent'])],
             'discount_value' => ['nullable', 'numeric', 'min:0', 'max:' . self::MONEY_MAX],
             'tax_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            // Part of the customer's advance to adjust against this invoice. Capped on save at
+            // what is actually available (AdvanceService::apply).
+            'apply_advance' => ['nullable', 'numeric', 'min:0', 'max:' . self::MONEY_MAX],
 
             'callout' => ['nullable', 'array'],
             'callout.title' => ['nullable', 'string', 'max:120'],
@@ -129,7 +132,7 @@ final class InvoiceRequest extends FormRequest
 
         $merge = [];
 
-        foreach (['package_total', 'discount_value', 'tax_percent'] as $field) {
+        foreach (['package_total', 'discount_value', 'tax_percent', 'apply_advance'] as $field) {
             if ($this->has($field)) {
                 $merge[$field] = $clean($this->input($field));
             }

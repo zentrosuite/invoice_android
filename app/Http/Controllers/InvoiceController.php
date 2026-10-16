@@ -7,12 +7,16 @@ namespace App\Http\Controllers;
 use App\Enums\InvoiceStatus;
 use App\Enums\InvoiceTemplate;
 use App\Http\Requests\InvoiceRequest;
+use App\Models\Autosave;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Services\Invoices\AdvanceService;
+use App\Services\Invoices\AutosaveStore;
 use App\Services\Invoices\InvoiceDocument;
 use App\Services\Invoices\InvoiceService;
 use App\Services\Invoices\InvoiceSharing;
 use App\Support\DeviceFiles;
+use App\Support\Money;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -25,6 +29,7 @@ final class InvoiceController extends Controller
 {
     public function __construct(
         private readonly InvoiceService $invoices,
+        private readonly AdvanceService $advances,
     ) {}
 
     public function index(Request $request): View
@@ -97,14 +102,16 @@ final class InvoiceController extends Controller
         return $this->builder($this->invoices->blank($customer), $customer);
     }
 
-    public function store(InvoiceRequest $request): RedirectResponse
+    public function store(InvoiceRequest $request, AutosaveStore $autosaves): RedirectResponse
     {
         $invoice = $this->invoices->create($request->validated());
+        $adjusted = $this->applyAdvance($invoice, $request->validated('apply_advance'));
+        $autosaves->forget(Autosave::NEW_INVOICE);
 
         return redirect()->route('invoices.show', $invoice)
-            ->with('success', $invoice->status === InvoiceStatus::Draft
+            ->with('success', ($invoice->status === InvoiceStatus::Draft
                 ? "Draft {$invoice->number} saved."
-                : "Invoice {$invoice->number} saved.");
+                : "Invoice {$invoice->number} saved.") . $adjusted);
     }
 
     public function show(Invoice $invoice, InvoiceSharing $sharing): View
@@ -113,6 +120,8 @@ final class InvoiceController extends Controller
 
         return view('invoices.show', [
             'invoice' => $invoice,
+            // Advance this customer has that can still go against this invoice.
+            'advanceAvailable' => $this->advances->availableFor($invoice),
             'shareText' => $sharing->message($invoice),
         ]);
     }
@@ -142,6 +151,30 @@ final class InvoiceController extends Controller
      * Render the PDF into the app's storage and return where it is, for the native share,
      * WhatsApp and "Save as" calls the page makes next. A phone app has no browser download.
      */
+    /**
+     * The PDF's HTML, written into the app's storage for the phone's browser engine to print
+     * (ZentroPdf.FromHtml). It shapes Tamil correctly, which dompdf (pdfFile) cannot; pdfFile
+     * stays as the fallback when the plugin is not there or fails.
+     */
+    public function printFile(Invoice $invoice, InvoiceDocument $document): JsonResponse
+    {
+        $name = $document->filename($invoice);
+        $html = DeviceFiles::path('print', 'invoice-' . $invoice->id . '.html');
+        file_put_contents($html, $document->printHtml($invoice));
+        $page = $document->printPage($invoice);
+
+        return response()->json([
+            'htmlPath' => $html,
+            'pdfPath' => DeviceFiles::path('pdf', $name),
+            'name' => $name,
+            'mime' => 'application/pdf',
+            'widthMm' => $page['width'],
+            'heightMm' => $page['height'],
+            // Receipt: @page margin 5 mm top and bottom (documents/receipt.blade.php).
+            'marginMm' => 10,
+        ]);
+    }
+
     public function pdfFile(Invoice $invoice, InvoiceDocument $document): JsonResponse
     {
         $name = $document->filename($invoice);
@@ -165,11 +198,22 @@ final class InvoiceController extends Controller
         return $this->builder($invoice, $invoice->customer);
     }
 
-    public function update(InvoiceRequest $request, Invoice $invoice): RedirectResponse
+    public function update(InvoiceRequest $request, Invoice $invoice, AutosaveStore $autosaves): RedirectResponse
     {
-        $this->invoices->update($invoice, $request->validated());
+        // An adjusted advance belongs to the customer it came from: moving the invoice to someone
+        // else would bill them with another customer's money.
+        $newCustomer = $request->validated('customer_id');
+        if ((float) $invoice->advanceApplied() > 0 && (string) $newCustomer !== (string) $invoice->customer_id) {
+            return back()->withInput()->withErrors([
+                'customer_id' => 'This invoice has an advance adjusted from ' . ($invoice->customer_name ?: 'its customer') . '. Remove that payment before changing the customer.',
+            ]);
+        }
 
-        return redirect()->route('invoices.show', $invoice)->with('success', "Invoice {$invoice->number} updated.");
+        $this->invoices->update($invoice, $request->validated());
+        $adjusted = $this->applyAdvance($invoice->refresh(), $request->validated('apply_advance'));
+        $autosaves->forget(Autosave::forInvoice($invoice));
+
+        return redirect()->route('invoices.show', $invoice)->with('success', "Invoice {$invoice->number} updated." . $adjusted);
     }
 
     /**
@@ -223,10 +267,42 @@ final class InvoiceController extends Controller
 
     private function builder(Invoice $invoice, ?Customer $customer): View
     {
+        $autosaves = app(AutosaveStore::class);
+        $key = $invoice->exists ? Autosave::forInvoice($invoice) : Autosave::NEW_INVOICE;
+
+        // Unsaved work from an earlier visit, offered as "continue where you left off". Not when
+        // the form is already refilled (a failed save, or that very work being restored), and not
+        // when the invoice was saved after it, which makes it out of date.
+        $unsaved = null;
+        if (! session()->hasOldInput()) {
+            $unsaved = $autosaves->find($key);
+            if ($unsaved !== null && $invoice->exists && $invoice->updated_at?->gt($unsaved->updated_at)) {
+                $autosaves->forget($key);
+                $unsaved = null;
+            }
+        }
+
         return view('invoices.builder', [
             'invoice' => $invoice,
             'customer' => $customer,
             'templates' => InvoiceTemplate::cases(),
+            'autosaveKey' => $key,
+            'unsaved' => $unsaved,
+            'advanceApplied' => $invoice->exists ? $invoice->advanceApplied() : '0.00',
         ]);
+    }
+
+    /**
+     * Adjust the advance the builder asked for. Returns a sentence for the flash message.
+     */
+    private function applyAdvance(Invoice $invoice, mixed $amount): string
+    {
+        if ($amount === null || (float) $amount <= 0) {
+            return '';
+        }
+
+        $payment = $this->advances->apply($invoice, (string) $amount);
+
+        return $payment === null ? '' : ' ' . Money::format($payment->amount, $invoice->currency_symbol) . ' adjusted from the advance.';
     }
 }

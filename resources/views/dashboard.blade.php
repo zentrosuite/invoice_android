@@ -23,6 +23,8 @@
     </div>
 
     {{-- Your data lives only on this phone: a nudge when no copy has been kept for a week. --}}
+    @include('invoices.partials.unfinished')
+
     @if ($backupOverdue)
         <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2" role="alert">
             <i class="ri-shield-check-line fs-18"></i>

@@ -33,7 +33,12 @@
 @endphp
 
 @section('page')
-    @if ($forPdf)
+    @if ($forChrome)
+        {{-- The browser engine clips anything drawn in a page margin, so the footer cannot live
+             in one: the bottom margin is 0 and the footer is fixed inside the page instead. --}}
+        @page { margin: 12mm 0 0 0; }
+        @page :first { margin-top: 0; }
+    @elseif ($forPdf)
         {{-- Later pages get a top margin; the first runs to the edge for the colour bar. --}}
         @page { margin: 12mm 0 22mm 0; }
         @page :first { margin-top: 0; }
@@ -50,7 +55,14 @@
      | a reserved bottom margin, so dompdf prints it on every page and flows content above it; on
      | screen it is pinned to the bottom of the sheet.
      */
-    @if ($forPdf)
+    @if ($forChrome)
+        {{-- Fixed elements repeat on every printed page. Content is kept clear of the footer by a
+             22 mm table footer row, which the engine also repeats at the foot of every page. --}}
+        .page-foot { position: fixed; left: 0; right: 0; bottom: 0; height: 22mm; background: #fff; }
+        .print-flow { width: 100%; border-collapse: collapse; }
+        .print-flow > tbody > tr > td, .print-flow > tfoot > tr > td { padding: 0; }
+        .print-flow-space { height: 22mm; }
+    @elseif ($forPdf)
         .page-foot { position: fixed; left: 0; right: 0; bottom: -22mm; height: 22mm; }
     @else
         .sheet { position: relative; min-height: 297mm; padding-bottom: 22mm; box-sizing: border-box; }
@@ -105,7 +117,7 @@
     .tag-off { color: #7a7f98; background: #f1f2f6; }
 
     .words-label { font-size: 7.6pt; letter-spacing: 1.6px; text-transform: uppercase; color: #7a7f98; margin-bottom: 3px; }
-    .words { font-family: 'Inter SemiBold', 'Inter', sans-serif; font-size: 8.8pt; color: #1f2440; font-style: italic; }
+    .words { font-family: 'Inter SemiBold', 'Noto Sans Tamil SemiBold', 'Inter', sans-serif; font-size: 8.8pt; color: #1f2440; font-style: italic; }
     .total-box { border: 1.5px solid {{ $navy }}; border-radius: 8px; }
     .total-box td { padding: 5px 14px; font-size: 9pt; }
     .total-box td.v { text-align: right; color: #1f2440; }
@@ -119,7 +131,7 @@
     .callout-title { font-size: 9.6pt; color: {{ $navy }}; }
     .callout-text { font-size: 8.6pt; }
     .callout-price { font-size: 14pt; color: {{ $accent }}; white-space: nowrap; }
-    .callout-price small { font-size: 8.6pt; color: #3d4260; font-family: 'Inter SemiBold', 'Inter', sans-serif; }
+    .callout-price small { font-size: 8.6pt; color: #3d4260; font-family: 'Inter SemiBold', 'Noto Sans Tamil SemiBold', 'Inter', sans-serif; }
     .callout-meta { font-size: 7.8pt; color: #3d4260; }
 
     .terms { font-size: 7.9pt; }
@@ -156,6 +168,9 @@
      a fixed element reliably at that level, and only on pages from where it appears onwards. --}}
 @if ($forPdf)
     @include('documents.partials.package-footer')
+@endif
+@if ($forChrome)
+<table class="print-flow"><tfoot><tr><td><div class="print-flow-space"></div></td></tr></tfoot><tbody><tr><td>
 @endif
 <div class="sheet">
     <table class="bar-top"><tr><td style="background: {{ $navy }}; width: 60%"></td><td style="background: #232a7a; width: 25%"></td><td style="background: {{ $accent }}"></td></tr></table>
@@ -313,7 +328,8 @@
                         @endif
                         @if ($isPartial)
                             <tr><td>Total</td><td class="v semi">{{ $money($invoice->total) }}</td></tr>
-                            <tr><td>Paid</td><td class="v semi">&minus; {{ $money($invoice->amount_paid) }}</td></tr>
+                            @if ((float) $advance > 0)<tr><td>Advance adjusted</td><td class="v semi">&minus; {{ $money($advance) }}</td></tr>@endif
+                        @if ((float) $paidDirect > 0)<tr><td>Paid</td><td class="v semi">&minus; {{ $money($paidDirect) }}</td></tr>@endif
                         @endif
                         <tr class="grand">
                             <td class="k semi">{{ $isPaid ? 'Total Paid' : ($isPartial ? 'Balance Due' : 'Total Amount Due') }}</td>
@@ -384,4 +400,7 @@
         @include('documents.partials.package-footer')
     @endunless
 </div>
+@if ($forChrome)
+</td></tr></tbody></table>
+@endif
 @endsection

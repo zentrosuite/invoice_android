@@ -44,6 +44,9 @@ final class CustomerController extends Controller
     {
         return view('customers.show', [
             'customer' => $customer,
+            'advanceBalance' => $customer->advanceBalance(),
+            'advances' => $customer->advances()->orderByDesc('received_on')->orderByDesc('id')->get(),
+            'adjustments' => $customer->advanceAdjustments()->with('invoice')->orderByDesc('paid_on')->orderByDesc('id')->get(),
             'invoices' => $customer->invoices()->orderByDesc('invoice_date')->orderByDesc('id')->limit(50)->get(),
         ]);
     }
@@ -107,6 +110,8 @@ final class CustomerController extends Controller
             'email' => $c->email,
             'address' => implode(', ', $c->addressLines()),
             'label' => $c->label(),
+            // Advance not yet adjusted, so the invoice builder can offer it.
+            'advance' => $c->advanceBalance(),
         ];
     }
 }

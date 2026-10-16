@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\DB;
 final class PaymentService
 {
     /**
-     * @param  array{amount: string, paid_on: string, method: string, reference?: ?string, note?: ?string}  $data
+     * @param  array{amount: string, paid_on: string, method: string, reference?: ?string, note?: ?string, customer_id?: ?int}  $data
      */
     public function record(Invoice $invoice, array $data): InvoicePayment
     {
@@ -33,6 +33,8 @@ final class PaymentService
                 'method' => PaymentMethod::from($data['method']),
                 'reference' => $this->text($data['reference'] ?? null),
                 'note' => $this->text($data['note'] ?? null),
+                // Only on advance adjustments: whose advance the money came from.
+                'customer_id' => $data['customer_id'] ?? null,
             ]);
 
             $this->reconcile($invoice);

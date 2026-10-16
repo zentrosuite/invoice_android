@@ -32,7 +32,8 @@ final class PaymentController extends Controller
         $data = $request->validateWithBag('payment', [
             'amount' => ['required', 'numeric', 'gt:0', 'max:' . $balance],
             'paid_on' => ['required', 'date', 'before_or_equal:' . now()->addDay()->toDateString()],
-            'method' => ['required', Rule::enum(PaymentMethod::class)],
+            // Advance is not a way of paying; it is adjusted through AdvanceController.
+            'method' => ['required', Rule::enum(PaymentMethod::class)->except([PaymentMethod::Advance])],
             'reference' => ['nullable', 'string', 'max:80'],
             'note' => ['nullable', 'string', 'max:255'],
         ], [

@@ -40,6 +40,28 @@ final readonly class InvoiceDocument
         return view('documents.' . $this->view($invoice), $this->data($invoice, $forPdf))->render();
     }
 
+    /**
+     * The PDF's HTML for Android's own browser engine to print (ZentroPdf plugin): the same page
+     * dompdf gets, with fonts as file:// URLs because the engine reads it from a file.
+     */
+    public function printHtml(Invoice $invoice): string
+    {
+        return view('documents.' . $this->view($invoice), $this->data($invoice, true, fileUrls: true))->render();
+    }
+
+    /**
+     * Page size for printHtml(), in millimetres. A receipt is 80 mm wide and as long as its
+     * content: height 0 tells the plugin to measure it.
+     *
+     * @return array{width: float, height: float}
+     */
+    public function printPage(Invoice $invoice): array
+    {
+        return $this->template($invoice) === InvoiceTemplate::Receipt
+            ? ['width' => 80.0, 'height' => 0.0]
+            : ['width' => 210.0, 'height' => 297.0];
+    }
+
     public function pdf(Invoice $invoice): DomPdf
     {
         $this->ensurePdfFolders();
@@ -94,7 +116,7 @@ final readonly class InvoiceDocument
      *
      * @return array<string, mixed>
      */
-    public function data(Invoice $invoice, bool $forPdf = false): array
+    public function data(Invoice $invoice, bool $forPdf = false, bool $fileUrls = false): array
     {
         $invoice->loadMissing('items');
 
@@ -108,9 +130,14 @@ final readonly class InvoiceDocument
             'invoice' => $invoice,
             'company' => $this->company,
             'forPdf' => $forPdf,
-            'fontUrl' => fn (string $file): string => $forPdf
-                ? public_path('assets/fonts/inter/' . $file)
-                : asset('assets/fonts/inter/' . $file),
+            // Drawn by Android's browser engine rather than dompdf: a few page rules differ.
+            'forChrome' => $fileUrls,
+            'fontUrl' => $font = fn (string $file, string $dir = 'inter'): string => match (true) {
+                $fileUrls => 'file://' . public_path("assets/fonts/{$dir}/{$file}"),
+                $forPdf => public_path("assets/fonts/{$dir}/{$file}"),
+                default => asset("assets/fonts/{$dir}/{$file}"),
+            },
+            'tamilFontUrl' => fn (string $file): string => $font($file, 'noto-tamil'),
             'logo' => $this->dataUri($this->company->logoFile()),
             // Null means: print no signatory block at all.
             'signature' => $this->dataUri($this->company->signatureFile()),
@@ -122,6 +149,9 @@ final readonly class InvoiceDocument
             'isDraft' => $invoice->status === InvoiceStatus::Draft,
             'isPartial' => $invoice->status === InvoiceStatus::Partial,
             'balance' => $balance,
+            // Of what was paid: the part adjusted from an advance, and the part paid directly.
+            'advance' => $advance = $invoice->advanceApplied(),
+            'paidDirect' => (string) \Brick\Math\BigDecimal::of((string) ($invoice->amount_paid ?? '0'))->minus($advance)->toScale(2),
             'payable' => $payable,
             'qr' => $upiPayload === null ? null : $this->upi->render($upiPayload, 480),
             'upiLink' => $upiPayload,

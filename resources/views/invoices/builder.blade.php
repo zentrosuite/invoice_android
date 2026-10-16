@@ -34,6 +34,7 @@
         'email' => $customer->email,
         'address' => implode(', ', $customer->addressLines()),
         'label' => $customer->label(),
+        'advance' => $customer->advanceBalance(),
     ] : null;
 
     $callout = old('callout', $invoice->callout ?? []);
@@ -75,6 +76,13 @@
             'search' => route('customers.search'),
             'quick' => route('customers.quick'),
         ],
+        // Advance: what this invoice already has adjusted, what it still owes before this save,
+        // and the amount typed (null = not touched, so it follows the total).
+        'advanceApplied' => $advanceApplied,
+        'amountPaid' => $editing ? (string) $invoice->amount_paid : '0',
+        'applyAdvance' => old('apply_advance'),
+        'applyAdvanceOn' => old('apply_advance') !== null || ! session()->hasOldInput(),
+        'autosave' => ['url' => route('invoices.autosave'), 'key' => $autosaveKey],
     ];
 @endphp
 @extends('layouts.app', [
@@ -84,6 +92,30 @@
 @section('title', $title)
 
 @section('content')
+    {{-- Unsaved work from an earlier visit (the app was closed or crashed half way). Outside the
+         builder's form: it has forms of its own. --}}
+    @if ($unsaved)
+        <div class="alert alert-primary zi-unsaved d-flex flex-wrap align-items-center gap-2" role="status">
+            <i class="ri-history-line fs-20"></i>
+            <div class="me-auto min-w-0">
+                <div class="fw-semibold">You have unsaved work on {{ $editing ? 'this invoice' : 'a new invoice' }}</div>
+                <div class="fs-13 text-truncate">{{ $unsaved->label }} · {{ $unsaved->updated_at->format('d/m/Y, g:i a') }}</div>
+            </div>
+            <form method="POST" action="{{ route('invoices.autosave.destroy') }}">
+                @csrf @method('DELETE')
+                <input type="hidden" name="key" value="{{ $autosaveKey }}">
+                <button class="btn btn-light btn-sm">Discard</button>
+            </form>
+            <a href="{{ route('invoices.autosave.restore', ['key' => $autosaveKey]) }}" class="btn btn-primary btn-sm">
+                <i class="ri-play-line me-1"></i>Continue
+            </a>
+        </div>
+    @elseif (session('autosave_restored'))
+        <div class="alert alert-success fs-13 py-2" role="status">
+            <i class="ri-check-line me-1"></i>Picked up where you left off. Save the invoice when it is ready.
+        </div>
+    @endif
+
     <form method="POST" action="{{ $editing ? route('invoices.update', $invoice) : route('invoices.store') }}"
           data-no-refresh x-data="invoiceBuilder(@js($state))" @submit="onSubmit($event)" @input="dirty = true"
           class="zi-builder" novalidate>
@@ -427,9 +459,11 @@
                                 @error('package_total')<div class="text-danger fs-13 mt-1">{{ $message }}</div>@enderror
                             </div>
 
-                            <div class="d-flex justify-content-between mb-2" x-show="mode === 'itemised'">
-                                <span class="text-muted">Subtotal</span>
-                                <span class="fw-medium" x-text="money(subtotal())"></span>
+                            <div x-show="mode === 'itemised'">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Subtotal</span>
+                                    <span class="fw-medium" x-text="money(subtotal())"></span>
+                                </div>
                             </div>
 
                             <label class="form-label mb-1" for="discount_value">Discount</label>
@@ -458,6 +492,41 @@
                             <div class="zi-total mt-3">
                                 <span>Total</span>
                                 <span x-text="money(total())"></span>
+                            </div>
+
+                            {{-- Already adjusted on an earlier save (editing). --}}
+                            <div x-show="advanceAppliedPaise() > 0" x-cloak>
+                                <div class="d-flex justify-content-between fs-13 mt-2">
+                                    <span class="text-muted">Advance already adjusted</span>
+                                    <span x-text="'− ' + money(advanceAppliedPaise() / 100)"></span>
+                                </div>
+                            </div>
+
+                            {{-- The customer's advance, offered while invoicing them. --}}
+                            <div class="zi-advance mt-3" x-show="advanceAvailablePaise() > 0" x-cloak>
+                                <div class="form-check form-switch mb-1">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="apply_advance_on"
+                                           x-model="advance.on" @change="dirty = true">
+                                    <label class="form-check-label fw-medium" for="apply_advance_on">Adjust advance</label>
+                                </div>
+                                <div class="text-muted fs-13" x-text="money(advanceAvailablePaise() / 100) + ' advance available from ' + (customer ? customer.name : '')"></div>
+                                <div x-show="advance.on" class="mt-2">
+                                    <label class="form-label mb-1" for="apply_advance">Amount to adjust</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text" x-text="currency"></span>
+                                        <input type="text" id="apply_advance" inputmode="decimal" class="form-control fw-semibold text-end"
+                                               :name="advance.on && advanceAvailablePaise() > 0 ? 'apply_advance' : ''"
+                                               :value="advanceText()" @input="advance.amount = $event.target.value; advance.touched = true">
+                                    </div>
+                                    <div class="text-danger fs-13 mt-1" x-show="advanceTooMuch()"
+                                         x-text="'At most ' + money(advanceMaxPaise() / 100) + ' can be adjusted.'"></div>
+                                    @error('apply_advance')<div class="text-danger fs-13 mt-1">{{ $message }}</div>@enderror
+                                    <div class="d-flex justify-content-between mt-2">
+                                        <span>Balance due</span>
+                                        <span class="fw-semibold" x-text="money(balanceAfterAdvancePaise() / 100)"></span>
+                                    </div>
+                                    <div class="form-text">Recorded as a payment from the advance, so the invoice shows as part paid or paid.</div>
+                                </div>
                             </div>
                         </div>
                     </div>

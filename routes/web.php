@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\AdvanceController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\AutosaveController;
 use App\Http\Controllers\Auth\RecoveryController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\CustomerController;
@@ -48,17 +50,25 @@ Route::middleware('auth')->group(function (): void {
     Route::get('customers/search', [CustomerController::class, 'search'])->name('customers.search');
     Route::post('customers/quick', [CustomerController::class, 'quickStore'])->name('customers.quick');
     Route::resource('customers', CustomerController::class);
+    Route::post('customers/{customer}/advances', [AdvanceController::class, 'store'])->name('customers.advances.store');
+    Route::delete('customers/{customer}/advances/{advance}', [AdvanceController::class, 'destroy'])->name('customers.advances.destroy');
 
     // Before the resource, or "export" is read as an invoice id.
     Route::post('invoices/export', [InvoiceController::class, 'export'])->name('invoices.export');
+    // The builder's background save of unsaved work, and picking it up again after a crash.
+    Route::post('invoices/autosave', [AutosaveController::class, 'store'])->name('invoices.autosave');
+    Route::get('invoices/autosave/restore', [AutosaveController::class, 'restore'])->name('invoices.autosave.restore');
+    Route::delete('invoices/autosave', [AutosaveController::class, 'destroy'])->name('invoices.autosave.destroy');
     Route::resource('invoices', InvoiceController::class);
     Route::post('invoices/{invoice}/duplicate', [InvoiceController::class, 'duplicate'])->name('invoices.duplicate');
     Route::put('invoices/{invoice}/status', [InvoiceController::class, 'status'])->name('invoices.status');
     Route::get('invoices/{invoice}/preview', [InvoiceController::class, 'preview'])->name('invoices.preview');
     // Writes the PDF into the app's storage and returns its path, for the native share/save calls.
     Route::post('invoices/{invoice}/pdf-file', [InvoiceController::class, 'pdfFile'])->name('invoices.pdf-file');
+    Route::post('invoices/{invoice}/print-file', [InvoiceController::class, 'printFile'])->name('invoices.print-file');
     Route::post('invoices/{invoice}/shared', [InvoiceController::class, 'shared'])->name('invoices.shared');
     Route::post('invoices/{invoice}/payments', [PaymentController::class, 'store'])->name('invoices.payments.store');
+    Route::post('invoices/{invoice}/advance', [AdvanceController::class, 'apply'])->name('invoices.advance');
     Route::delete('invoices/{invoice}/payments/{payment}', [PaymentController::class, 'destroy'])->name('invoices.payments.destroy');
 
     Route::get('company', [CompanyProfileController::class, 'edit'])->name('company.edit');

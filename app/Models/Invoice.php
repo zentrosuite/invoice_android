@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\InvoiceStatus;
 use App\Enums\InvoiceTemplate;
+use App\Enums\PaymentMethod;
 use App\Enums\PricingMode;
 use Brick\Math\BigDecimal;
 use Database\Factories\InvoiceFactory;
@@ -108,6 +109,20 @@ class Invoice extends Model
         $balance = BigDecimal::of($this->total ?? '0')->minus($this->amount_paid ?? '0');
 
         return (string) ($balance->isNegative() ? BigDecimal::zero()->toScale(2) : $balance->toScale(2));
+    }
+
+    /**
+     * How much of what was paid came from the customer's advance (the rest was paid directly).
+     */
+    public function advanceApplied(): string
+    {
+        if (! $this->relationLoaded('payments')) {
+            return (string) BigDecimal::of((string) ($this->payments()->where('method', PaymentMethod::Advance->value)->sum('amount') ?: '0'))->toScale(2);
+        }
+
+        return (string) $this->payments
+            ->where('method', PaymentMethod::Advance)
+            ->reduce(fn (BigDecimal $sum, InvoicePayment $p): BigDecimal => $sum->plus((string) $p->amount), BigDecimal::zero()->toScale(2));
     }
 
     public function hasPayments(): bool

@@ -46,6 +46,11 @@
                     <i class="ri-money-rupee-circle-line me-1"></i>Record payment
                 </button>
             @endif
+            @if ((float) $advanceAvailable > 0)
+                <button type="button" class="btn btn-soft-success" @click="$dispatch('adjust-advance')">
+                    <i class="ri-wallet-3-line me-1"></i>Adjust advance
+                </button>
+            @endif
 
             <div class="dropdown">
                 <button class="btn btn-light" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More actions">
@@ -164,7 +169,7 @@
                         <div class="col-sm-6">
                             <label class="form-label" for="pay_method">Method</label>
                             <select id="pay_method" name="method" class="form-select">
-                                @foreach (\App\Enums\PaymentMethod::cases() as $method)
+                                @foreach (\App\Enums\PaymentMethod::received() as $method)
                                     <option value="{{ $method->value }}" @selected(old('method', 'upi') === $method->value)>{{ $method->label() }}</option>
                                 @endforeach
                             </select>
@@ -188,12 +193,49 @@
         </div>
     </div>
 
+    {{-- ---- Adjust the customer's advance ----------------------------------------------------- --}}
+    @if ((float) $advanceAvailable > 0)
+        @php $adv = $errors->getBag('advance'); @endphp
+        <div x-data="{ open: @js($adv->any()) }" @adjust-advance.window="open = true; $nextTick(() => $refs.advAmount.select())">
+            <div class="zi-modal" x-show="open" x-cloak @keydown.escape.window="open = false" role="dialog" aria-modal="true" aria-labelledby="adv-title">
+                <div class="zi-modal-backdrop" @click="open = false"></div>
+                <form method="POST" action="{{ route('invoices.advance', $invoice) }}" class="zi-modal-card card mb-0">
+                    @csrf
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0" id="adv-title">Adjust advance</h5>
+                        <button type="button" class="btn-close" @click="open = false" aria-label="Close"></button>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted fs-13 mb-3">
+                            {{ $invoice->customer_name }} has @money($invoice->customer?->advanceBalance() ?? $advanceAvailable, $sym) of advance.
+                            This invoice still owes @money($invoice->balance(), $sym).
+                        </p>
+                        <label class="form-label" for="adv_amount">Amount to adjust</label>
+                        <div class="input-group">
+                            <span class="input-group-text">{{ $sym }}</span>
+                            <input type="text" id="adv_amount" name="amount" inputmode="decimal" x-ref="advAmount" required
+                                   value="{{ old('amount', $advanceAvailable) }}"
+                                   class="form-control fw-semibold @if ($adv->has('amount')) is-invalid @endif">
+                        </div>
+                        @if ($adv->has('amount'))<div class="text-danger fs-13 mt-1">{{ $adv->first('amount') }}</div>@endif
+                        <div class="form-text">Up to @money($advanceAvailable, $sym). It is recorded as a payment from the advance.</div>
+                    </div>
+                    <div class="card-footer d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-light" @click="open = false">Cancel</button>
+                        <button type="submit" class="btn btn-success"><i class="ri-check-line me-1"></i>Adjust</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
+
     {{-- ---- Send to the customer --------------------------------------------------------------
          On the phone the PDF itself goes: WhatsApp opens on this customer's chat with it attached
          (ZentroWhatsApp plugin), or the share sheet, or Android's "Save as". Each first asks the
          server to render the PDF into the app's storage (invoices.pdf-file). --}}
     <div class="card zi-share" x-data="sendBox(@js([
         'pdfUrl' => route('invoices.pdf-file', $invoice),
+        'printUrl' => route('invoices.print-file', $invoice),
         'sharedUrl' => route('invoices.shared', $invoice),
         'phone' => $invoice->whatsappNumber(),
         'text' => $shareText,
@@ -271,9 +313,19 @@
                 error: '',
                 note: '',
 
-                /** Render the PDF into the app's storage; {path, name, mime, ms}. */
+                /**
+                 * Render the PDF into the app's storage; {path, name, mime, ms}. The phone's own
+                 * browser engine prints it (ZentroPdf), so Tamil comes out right; dompdf is the
+                 * fallback when that fails (an old phone, or not inside the app).
+                 */
                 pdf() {
-                    return ZentroNative.post(cfg.pdfUrl);
+                    const started = Date.now();
+                    return ZentroNative.post(cfg.printUrl)
+                        .then((job) => ZentroNative.call('ZentroPdf.FromHtml', {
+                            htmlPath: job.htmlPath, pdfPath: job.pdfPath,
+                            widthMm: job.widthMm, heightMm: job.heightMm, marginMm: job.marginMm,
+                        }).then((r) => ({ path: r.path, name: job.name, mime: job.mime, ms: Date.now() - started })))
+                        .catch(() => ZentroNative.post(cfg.pdfUrl));
                 },
                 run(kind, action) {
                     this.busy = kind;

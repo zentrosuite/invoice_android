@@ -7,6 +7,8 @@
 @endphp
 
 @section('content')
+    @include('invoices.partials.unfinished')
+
     <div class="card">
         <div class="card-body border-bottom">
             <div class="d-flex flex-wrap gap-2 align-items-center">

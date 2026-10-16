@@ -70,6 +70,114 @@
                 @endif
             </div>
 
+            {{-- ---- Advance ---------------------------------------------------------------------
+                 Money received before an invoice. It waits here and is adjusted against this
+                 customer's invoices from the invoice builder or an invoice page. --}}
+            @php $adv = $errors->getBag('advance'); $sym = app(\App\Settings\InvoiceSettings::class)->currencySymbol; @endphp
+            <div class="card" x-data="{ open: @js($adv->any()) }">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="me-auto">
+                        <div class="text-uppercase fs-11 fw-semibold text-muted">Advance available</div>
+                        <div class="fs-20 fw-semibold @if ((float) $advanceBalance > 0) text-success @endif">@money($advanceBalance, $sym)</div>
+                    </div>
+                    <button type="button" class="btn btn-soft-success" @click="open = true; $nextTick(() => $refs.advAmount.focus())">
+                        <i class="ri-add-line me-1"></i>Record advance
+                    </button>
+                </div>
+
+                @if ($advances->isNotEmpty() || $adjustments->isNotEmpty())
+                    <div class="table-responsive border-top">
+                        <table class="table align-middle mb-0 fs-13">
+                            <tbody>
+                            @foreach ($advances as $advance)
+                                <tr>
+                                    <td class="text-nowrap">{{ $advance->received_on->format('d/m/Y') }}</td>
+                                    <td>
+                                        Advance received · {{ $advance->method->label() }}
+                                        @if ($advance->reference)<div class="text-muted fs-12">Ref {{ $advance->reference }}</div>@endif
+                                        @if ($advance->note)<div class="text-muted fs-12">{{ $advance->note }}</div>@endif
+                                    </td>
+                                    <td class="text-end text-nowrap fw-medium text-success">+ @money($advance->amount, $sym)</td>
+                                    <td class="text-end" style="width: 1%">
+                                        <form method="POST" action="{{ route('customers.advances.destroy', [$customer, $advance]) }}"
+                                              data-confirm="Remove this advance?" data-confirm-button="Remove">
+                                            @csrf @method('DELETE')
+                                            <button class="btn btn-icon btn-sm btn-ghost-danger" aria-label="Remove advance"><i class="ri-delete-bin-line"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @endforeach
+                            @foreach ($adjustments as $adjustment)
+                                <tr @if ($adjustment->invoice) data-href="{{ route('invoices.show', $adjustment->invoice) }}" @endif>
+                                    <td class="text-nowrap">{{ $adjustment->paid_on->format('d/m/Y') }}</td>
+                                    <td>Adjusted against
+                                        @if ($adjustment->invoice)
+                                            <a href="{{ route('invoices.show', $adjustment->invoice) }}" class="fw-medium">{{ $adjustment->invoice->number }}</a>
+                                        @else an invoice @endif
+                                    </td>
+                                    <td class="text-end text-nowrap fw-medium">− @money($adjustment->amount, $sym)</td>
+                                    <td></td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+
+                <div class="zi-modal" x-show="open" x-cloak @keydown.escape.window="open = false" role="dialog" aria-modal="true" aria-labelledby="adv-title">
+                    <div class="zi-modal-backdrop" @click="open = false"></div>
+                    <form method="POST" action="{{ route('customers.advances.store', $customer) }}" class="zi-modal-card card mb-0">
+                        @csrf
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0" id="adv-title">Advance from {{ $customer->name }}</h5>
+                            <button type="button" class="btn-close" @click="open = false" aria-label="Close"></button>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted fs-13">Money received before the invoice. It is kept for {{ $customer->name }} and adjusted against their invoices.</p>
+                            <div class="row g-2">
+                                <div class="col-sm-6">
+                                    <label class="form-label" for="adv_amount">Amount received</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">{{ $sym }}</span>
+                                        <input type="text" id="adv_amount" name="amount" inputmode="decimal" x-ref="advAmount" required
+                                               value="{{ old('amount') }}" class="form-control fw-semibold @if ($adv->has('amount')) is-invalid @endif">
+                                    </div>
+                                    @if ($adv->has('amount'))<div class="text-danger fs-13 mt-1">{{ $adv->first('amount') }}</div>@endif
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label" for="adv_on">Date</label>
+                                    <input type="date" id="adv_on" name="received_on" required value="{{ old('received_on', now()->toDateString()) }}"
+                                           class="form-control @if ($adv->has('received_on')) is-invalid @endif">
+                                    @if ($adv->has('received_on'))<div class="text-danger fs-13 mt-1">{{ $adv->first('received_on') }}</div>@endif
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label" for="adv_method">Method</label>
+                                    <select id="adv_method" name="method" class="form-select">
+                                        @foreach (\App\Enums\PaymentMethod::received() as $method)
+                                            <option value="{{ $method->value }}" @selected(old('method', 'upi') === $method->value)>{{ $method->label() }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label" for="adv_ref">Reference <span class="text-muted">(optional)</span></label>
+                                    <input type="text" id="adv_ref" name="reference" maxlength="80" value="{{ old('reference') }}"
+                                           placeholder="UPI ref / UTR / cheque no." class="form-control">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label" for="adv_note">Note <span class="text-muted">(optional)</span></label>
+                                    <input type="text" id="adv_note" name="note" maxlength="255" value="{{ old('note') }}"
+                                           placeholder="e.g. For the shop interior work" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-light" @click="open = false">Cancel</button>
+                            <button type="submit" class="btn btn-success"><i class="ri-check-line me-1"></i>Save advance</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <form method="POST" action="{{ route('customers.destroy', $customer) }}"
                   data-confirm="Remove {{ $customer->name }}?"
                   data-confirm-text="They disappear from your customer list. Invoices already made for them keep their details."

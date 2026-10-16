@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\PaymentMethod;
+use Brick\Math\BigDecimal;
 use Database\Factories\CustomerFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -55,6 +57,36 @@ class Customer extends Model
     /**
      * @return HasMany<Invoice, $this>
      */
+    /**
+     * @return HasMany<CustomerAdvance, $this>
+     */
+    public function advances(): HasMany
+    {
+        return $this->hasMany(CustomerAdvance::class);
+    }
+
+    /**
+     * Advance payments adjusted against invoices, newest first.
+     *
+     * @return HasMany<InvoicePayment, $this>
+     */
+    public function advanceAdjustments(): HasMany
+    {
+        return $this->hasMany(InvoicePayment::class)->where('method', PaymentMethod::Advance->value);
+    }
+
+    /**
+     * Advance received and not yet adjusted against an invoice: Σ advances − Σ adjustments.
+     */
+    public function advanceBalance(): string
+    {
+        $received = (string) ($this->advances()->sum('amount') ?: '0');
+        $used = (string) ($this->advanceAdjustments()->sum('amount') ?: '0');
+        $balance = BigDecimal::of($received)->minus($used)->toScale(2);
+
+        return (string) ($balance->isNegative() ? BigDecimal::zero()->toScale(2) : $balance);
+    }
+
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);
